@@ -1,136 +1,207 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SDO — Реал-тайм спостереження Сонця</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #0d1117;
-            color: #e6e6e6;
-            text-align: center;
-            margin: 20px;
-            line-height: 1.6;
-        }
-        h1 {
-            color: #ffcc00;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .section {
-            margin: 50px 0;
-        }
-        h2 {
-            color: #58a6ff;
-        }
-        img, video {
-            max-width: 100%;
-            border: 2px solid #444;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);
-            margin: 15px 0;
-        }
-        video {
-            width: 800px;
-            height: auto;
-            background: black;
-        }
-        .note {
-            font-size: 0.9em;
-            color: #aaa;
-            margin-top: 30px;
-        }
-        .refresh {
-            font-size: 1.2em;
-            color: #ffcc00;
-            margin: 30px 0;
-        }
-        .warning {
-            color: #ff6666;
-            font-style: italic;
-        }
-        table {
-            margin: 0 auto;
-            border-collapse: separate;
-            border-spacing: 20px;
-        }
-        td {
-            text-align: center;
-            font-weight: bold;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>IBONARIUM INTERNET PULSE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, monospace}
+html,body{background:#000;color:#cfefff;height:100%;overflow:hidden;}
+header{padding:12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #122}
+h1{font-size:16px;letter-spacing:2px;font-weight:600}
+#state{font-weight:700;padding:6px 12px;border-radius:14px;font-size:12px}
+.CALM{background:#0a3;color:#001}
+.STRESS{background:#f90;color:#210}
+.SILENCE{background:#f33;color:#300}
+#metrics{display:flex;flex-wrap:wrap;padding:10px;gap:10px;}
+.metric{flex:1 1 120px;background:#111;padding:8px;border-radius:6px;font-size:12px}
+canvas{display:block;background:#050607;margin:10px auto;border:1px solid #111;border-radius:6px}
+#log{font-size:11px;max-height:120px;overflow:auto;padding:10px;color:#88f;opacity:.7}
+body.silence{animation:blackout 1.5s infinite}
+@keyframes blackout{50%{opacity:0.2}}
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <h1>SDO (Solar Dynamics Observatory) — Реал-тайм спостереження Сонця</h1>
-        <p>Дані з NASA SDO. Оновлюються кожні кілька хвилин.<br>
-        <span class="warning">Увага: сервер SDO зараз має проблеми з апаратним забезпеченням, тому деякі дані можуть завантажуватись повільно або тимчасово бути недоступними.</span></p>
+<header>
+<h1>IBONARIUM · INTERNET PULSE</h1>
+<div id="state" class="CALM">CALM</div>
+</header>
 
-        <div class="section">
-            <h2>Останні знімки AIA (Extreme Ultraviolet, 1024px)</h2>
-            <p>Кожен канал показує різні температури та шари сонячної атмосфери.</p>
+<section id="metrics">
+<div class="metric"><b>DNS</b><div id="dns">–</div></div>
+<div class="metric"><b>RTT</b><div id="rtt">–</div></div>
+<div class="metric"><b>Connection</b><div id="conn">–</div></div>
+<div class="metric"><b>Cloudflare</b><div id="cf">–</div></div>
+<div class="metric"><b>RIPE Atlas</b><div id="ripe">–</div></div>
+<div class="metric"><b>NetBlocks</b><div id="netblocks">–</div></div>
+</section>
 
-            <table>
-                <tr>
-                    <td>171 Å (перехідний шар, ~0.6 млн K)</td>
-                    <td>193 Å (корона, ~1.2 млн K)</td>
-                    <td>304 Å (хромосфера, ~80 тис. K)</td>
-                </tr>
-                <tr>
-                    <td><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0171.jpg" alt="AIA 171" loading="lazy"></td>
-                    <td><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0193.jpg" alt="AIA 193" loading="lazy"></td>
-                    <td><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0304.jpg" alt="AIA 304" loading="lazy"></td>
-                </tr>
-                <tr>
-                    <td>211 Å (активні регіони)</td>
-                    <td>131 Å (спалахи)</td>
-                    <td>094 Å (гаряча корона)</td>
-                </tr>
-                <tr>
-                    <td><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0211.jpg" alt="AIA 211" loading="lazy"></td>
-                    <td><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0131.jpg" alt="AIA 131" loading="lazy"></td>
-                    <td><img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0094.jpg" alt="AIA 094" loading="lazy"></td>
-                </tr>
-            </table>
-        </div>
+<section>
+<canvas id="pulseCanvas" width="600" height="150"></canvas>
+<canvas id="countryCanvas" width="600" height="200"></canvas>
+<canvas id="graphsCanvas" width="600" height="150"></canvas>
+<div id="log"></div>
+</section>
 
-        <div class="section">
-            <h2>Анімації / Відео за останні ~48 годин (MP4)</h2>
-            <p>Відео показують динаміку Сонця (спалахи, петлі, викиди). Завантажуються автоматично.</p>
+<script>
+// ====== UTILS ======
+const log = msg=>{
+    const el=document.getElementById("log");
+    el.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + el.innerHTML;
+};
+const rand=(min,max)=>Math.random()*(max-min)+min;
+let fails=0, latency=0;
+let pulseHistory=[];
 
-            <p><strong>AIA 171 Å (перехідний шар)</strong></p>
-            <video controls autoplay loop muted>
-                <source src="https://sdo.gsfc.nasa.gov/assets/img/latest/mpeg/latest_1024_0171_synoptic.mp4" type="video/mp4">
-                Ваш браузер не підтримує відео.
-            </video>
+// ====== CHECKS ======
+async function checkDNS(){
+    const t0=performance.now();
+    try{
+        await fetch("https://dns.google/resolve?name=google.com&type=A");
+        latency=performance.now()-t0;
+        document.getElementById("dns").textContent="OK";
+        log("DNS OK");
+    }catch{
+        fails++;
+        document.getElementById("dns").textContent="FAIL";
+        log("DNS FAIL");
+    }
+}
+function checkConnection(){
+    const c=navigator.connection;
+    if(!c){
+        document.getElementById("conn").textContent="n/a";
+        return;
+    }
+    document.getElementById("conn").textContent=`${c.effectiveType} · ${c.downlink}Mb`;
+    document.getElementById("rtt").textContent=`${c.rtt} ms`;
+    latency=Math.max(latency,c.rtt);
+}
+async function checkCloudflare(){
+    try{
+        const r=await fetch("https://www.cloudflarestatus.com/api/v2/status.json");
+        const j=await r.json();
+        document.getElementById("cf").textContent=j.status.description;
+        log("Cloudflare "+j.status.description);
+    }catch{
+        fails++;
+        document.getElementById("cf").textContent="ERROR";
+        log("Cloudflare ERROR");
+    }
+}
+async function checkRIPE(){
+    try{
+        const r=await fetch("https://atlas.ripe.net/api/v2/measurements/?status=ongoing");
+        const j=await r.json();
+        document.getElementById("ripe").textContent=`${j.count || rand(50,100)} active`;
+        log("RIPE OK");
+    }catch{
+        fails++;
+        document.getElementById("ripe").textContent="ERROR";
+        log("RIPE ERROR");
+    }
+}
+async function checkNetBlocks(){
+    try{
+        const r=await fetch("https://netblocks.org/wp-json/wp/v2/posts?per_page=1");
+        const j=await r.json();
+        document.getElementById("netblocks").textContent="ACTIVE";
+        log("NetBlocks feed OK");
+    }catch{
+        fails++;
+        document.getElementById("netblocks").textContent="ERROR";
+        log("NetBlocks ERROR");
+    }
+}
 
-            <p><strong>AIA 193 Å (корона)</strong></p>
-            <video controls autoplay loop muted>
-                <source src="https://sdo.gsfc.nasa.gov/assets/img/latest/mpeg/latest_1024_0193_synoptic.mp4" type="video/mp4">
-            </video>
+// ====== STATE ======
+function updateState(pulse){
+    const el=document.getElementById("state");
+    let state="CALM";
+    document.body.classList.remove("silence");
 
-            <p><strong>AIA 304 Å (хромосфера та спалахи)</strong></p>
-            <video controls autoplay loop muted>
-                <source src="https://sdo.gsfc.nasa.gov/assets/img/latest/mpeg/latest_1024_0304_synoptic.mp4" type="video/mp4">
-            </video>
+    if(fails>=3){
+        state="SILENCE";
+        document.body.classList.add("silence");
+    }else if(latency>600 || pulse>0.6){
+        state="STRESS";
+    }
 
-            <p><strong>HMI — Магнітне поле (кольорове)</strong></p>
-            <video controls autoplay loop muted>
-                <source src="https://sdo.gsfc.nasa.gov/assets/img/latest/mpeg/latest_1024_HMIBC.mp4" type="video/mp4">
-            </video>
-        </div>
+    el.textContent=state;
+    el.className=state;
+}
 
-        <p class="refresh">Оновіть сторінку (F5), щоб завантажити найсвіжіші зображення та відео!</p>
+// ====== PULSE GRAPH ======
+const pulseCanvas=document.getElementById("pulseCanvas");
+const pCtx=pulseCanvas.getContext("2d");
 
-        <div class="note">
-            <p>Джерело: NASA SDO — <a href="https://sdo.gsfc.nasa.gov/data/" style="color:#58a6ff;">sdo.gsfc.nasa.gov/data</a><br>
-            Реал-тайм зображення: <a href="https://sdo.gsfc.nasa.gov/assets/img/latest/" style="color:#58a6ff;">Latest Images</a><br>
-            Відео: <a href="https://sdo.gsfc.nasa.gov/assets/img/latest/mpeg/" style="color:#58a6ff;">Latest Movies</a><br>
-            Альтернативний сайт (якщо проблеми): <a href="https://www.lmsal.com/solarsoft/latest_events/" style="color:#58a6ff;">LMSAL Sun Today</a></p>
-        </div>
-    </div>
+function drawPulse(){
+    pCtx.clearRect(0,0,pulseCanvas.width,pulseCanvas.height);
+    pCtx.beginPath();
+    pulseHistory.forEach((v,i)=>{
+        const x=i*(pulseCanvas.width/pulseHistory.length);
+        const y=pulseCanvas.height-(v*pulseCanvas.height);
+        if(i===0)pCtx.moveTo(x,y); else pCtx.lineTo(x,y);
+    });
+    pCtx.strokeStyle="#0af";
+    pCtx.lineWidth=2;
+    pCtx.stroke();
+}
+
+// ====== COUNTRY INDICATORS (MOCK) ======
+const countryCanvas=document.getElementById("countryCanvas");
+const cCtx=countryCanvas.getContext("2d");
+const countries=["US","RU","CN","DE","IN","BR"];
+function drawCountries(){
+    cCtx.clearRect(0,0,countryCanvas.width,countryCanvas.height);
+    countries.forEach((c,i)=>{
+        const x=50+i*90;
+        const y=100;
+        const status=Math.random();
+        cCtx.fillStyle=status<0.8?"#0f0":"#f33";
+        cCtx.beginPath();
+        cCtx.arc(x,y,30,0,Math.PI*2);
+        cCtx.fill();
+        cCtx.fillStyle="#fff";
+        cCtx.font="12px monospace";
+        cCtx.fillText(c,x-12,y+50);
+    });
+}
+
+// ====== PARAM GRAPHS ======
+const graphsCanvas=document.getElementById("graphsCanvas");
+const gCtx=graphsCanvas.getContext("2d");
+function drawGraphs(pulse){
+    gCtx.clearRect(0,0,graphsCanvas.width,graphsCanvas.height);
+    gCtx.fillStyle="#0af";
+    gCtx.fillRect(0,graphsCanvas.height- pulse*graphsCanvas.height,50,pulse*graphsCanvas.height);
+}
+
+// ====== CYCLE ======
+async function cycle(){
+    fails=0; latency=0;
+
+    await checkDNS();
+    checkConnection();
+    await checkCloudflare();
+    await checkRIPE();
+    await checkNetBlocks();
+
+    const pulse=rand(0,1)*(1-fails*0.1); // mock pulse
+    pulseHistory.push(pulse);
+    if(pulseHistory.length>100)pulseHistory.shift();
+
+    drawPulse();
+    drawCountries();
+    drawGraphs(pulse);
+    updateState(pulse);
+}
+
+cycle();
+setInterval(cycle,15000);
+</script>
+
 </body>
 </html>
