@@ -20,7 +20,7 @@ h2 { margin: 20px 0 10px; }
 .container { padding: 20px; max-width: 1000px; margin: 0 auto; }
 p { margin: 10px 0; }
 .warning { color: #ff6666; font-style: italic; }
-img, video, iframe {
+img, video {
     max-width: 100%;
     border: 2px solid #444;
     border-radius: 8px;
@@ -29,69 +29,46 @@ img, video, iframe {
     display: block;
 }
 video { background: black; }
-table { width: 100%; border-collapse: collapse; margin: 20px 0; text-align: center; }
-td { padding: 10px; font-weight: bold; vertical-align: top; }
 .note { font-size: 0.9em; color: #aaa; margin-top: 20px; }
 a { color: #58a6ff; text-decoration: none; }
 a:hover { text-decoration: underline; }
+.table-container { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin: 20px 0; text-align: center; }
+td { padding: 10px; font-weight: bold; vertical-align: top; }
 </style>
 </head>
 <body>
 <div class="container">
-
 <h1>SDO (Solar Dynamics Observatory) — Реал-тайм спостереження Сонця</h1>
-<p>Дані з космічного апарату SDO (NASA). Оновлюються кожні кілька хвилин.</p>
-<p class="warning">Увага: сервер SDO може мати затримки, деякі зображення або відео тимчасово недоступні.</p>
+<p>Дані з космічного апарату SDO (NASA). Оновлюються щодня та кожні кілька хвилин.</p>
+<p class="warning">Сервер SDO може мати затримки — деякі зображення або відео можуть тимчасово не завантажуватися.</p>
 
-<h2>Останні знімки AIA (Extreme Ultraviolet, 1024px)</h2>
+<h2>Останні знімки AIA (Extreme Ultraviolet)</h2>
+<div class="table-container">
 <table>
 <tr>
-    <td><strong>171 Å</strong> (перехідний шар, ~0.6 млн K)<br>
-        <img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0171.jpg" alt="AIA 171"></td>
-    <td><strong>193 Å</strong> (корона, ~1.2 млн K)<br>
-        <img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0193.jpg" alt="AIA 193"></td>
-    <td><strong>304 Å</strong> (хромосфера, ~80 тис. K)<br>
-        <img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0304.jpg" alt="AIA 304"></td>
+    <td><strong>171 Å</strong><br><img id="aia171" alt="AIA 171"></td>
+    <td><strong>193 Å</strong><br><img id="aia193" alt="AIA 193"></td>
+    <td><strong>304 Å</strong><br><img id="aia304" alt="AIA 304"></td>
 </tr>
 <tr>
-    <td><strong>211 Å</strong> (активні регіони)<br>
-        <img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0211.jpg" alt="AIA 211"></td>
-    <td><strong>131 Å</strong> (спалахи)<br>
-        <img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0131.jpg" alt="AIA 131"></td>
-    <td><strong>094 Å</strong> (дуже гаряча корона)<br>
-        <img src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0094.jpg" alt="AIA 094"></td>
+    <td><strong>211 Å</strong><br><img id="aia211" alt="AIA 211"></td>
+    <td><strong>131 Å</strong><br><img id="aia131" alt="AIA 131"></td>
+    <td><strong>094 Å</strong><br><img id="aia094" alt="AIA 094"></td>
 </tr>
 </table>
+</div>
 
-<h2>Анімації / Відео</h2>
-<p><strong>AIA 171 Å</strong></p>
-<img src="https://sdo.gsfc.nasa.gov/assets/img/browse/2025/01/08/20250108_171.gif" alt="AIA 171 animation">
+<h2>Анімації / відео</h2>
+<div id="animations">
+<!-- JS динамічно додасть останні MP4 / GIF -->
+</div>
+
+<h2>Пряма трансляція Сонця (останні 30 хвилин)</h2>
 <video controls autoplay loop muted>
     <source src="https://sdo.gsfc.nasa.gov/assets/img/latest/mpeg/latest_1024_0171_synoptic.mp4" type="video/mp4">
     Ваш браузер не підтримує відео.
 </video>
-
-<p><strong>AIA 193 Å</strong></p>
-<img src="https://sdo.gsfc.nasa.gov/assets/img/browse/2025/01/08/20250108_193.gif" alt="AIA 193 animation">
-<video controls autoplay loop muted>
-    <source src="https://sdo.gsfc.nasa.gov/assets/img/latest/mpeg/latest_1024_0193_synoptic.mp4" type="video/mp4">
-</video>
-
-<p><strong>AIA 304 Å</strong></p>
-<video controls autoplay loop muted>
-    <source src="https://sdo.gsfc.nasa.gov/assets/img/latest/mpeg/latest_1024_0304_synoptic.mp4" type="video/mp4">
-</video>
-
-<p><strong>HMI — Магнітне поле (кольорове)</strong></p>
-<img src="https://sdo.gsfc.nasa.gov/assets/img/browse/2025/01/08/20250108_6173_color.gif" alt="HMI Magnetogram animation">
-<video controls autoplay loop muted>
-    <source src="https://sdo.gsfc.nasa.gov/assets/img/latest/mpeg/latest_1024_HMIBC.mp4" type="video/mp4">
-</video>
-
-<h2>Пряма трансляція Сонця (останні 30 хвилин)</h2>
-<iframe width="800" height="450" 
-    src="https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_171_continuum.mpg" 
-    frameborder="0" allowfullscreen></iframe>
 
 <div class="note">
     Джерело: NASA SDO — <a href="https://sdo.gsfc.nasa.gov/data/">sdo.gsfc.nasa.gov/data</a><br>
@@ -102,8 +79,42 @@ a:hover { text-decoration: underline; }
 </div>
 
 <p>Оновіть сторінку (F5), щоб побачити найсвіжіші дані!</p>
-
 </div>
+
+<script>
+// Динамічно підставляємо останні знімки SDO
+const today = new Date();
+const yyyy = today.getFullYear();
+const mm = String(today.getMonth() + 1).padStart(2,'0');
+const dd = String(today.getDate()).padStart(2,'0');
+
+const baseBrowse = `https://sdo.gsfc.nasa.gov/assets/img/browse/${yyyy}/${mm}/${dd}/`;
+
+const aiaChannels = ['171','193','304','211','131','094'];
+aiaChannels.forEach(ch => {
+    const img = document.getElementById(`aia${ch}`);
+    img.src = `${baseBrowse}${yyyy}${mm}${dd}_${ch}.gif`;
+});
+
+// Динамічно додаємо анімації / відео
+const animationsDiv = document.getElementById('animations');
+aiaChannels.forEach(ch => {
+    const container = document.createElement('div');
+    const p = document.createElement('p');
+    p.innerHTML = `<strong>AIA ${ch} Å</strong>`;
+    const video = document.createElement('video');
+    video.controls = true;
+    video.autoplay = true;
+    video.loop = true;
+    video.muted = true;
+    const source = document.createElement('source');
+    source.src = `https://sdo.gsfc.nasa.gov/assets/img/latest/mpeg/latest_1024_${ch}_synoptic.mp4`;
+    source.type = 'video/mp4';
+    video.appendChild(source);
+    container.appendChild(p);
+    container.appendChild(video);
+    animationsDiv.appendChild(container);
+});
+</script>
 </body>
 </html>
-
