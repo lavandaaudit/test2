@@ -2,166 +2,209 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<title>LEVEL 2 · IBONARIUM</title>
+<title>GEOMETRIC CHAOS · SMOOTH PULSE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 html, body {
   margin:0;
   padding:0;
-  width:100%;
-  height:100%;
   background:#000;
   overflow:hidden;
-  font-family:"Courier New", monospace;
-  color:#9fe7ff;
+  height:100%;
+  font-family:'Courier New', monospace;
+  color:#0af;
 }
 
-canvas {
-  position:fixed;
-  inset:0;
-}
+canvas { display:block; }
 
-/* === SYSTEM TEXT — КОПІЯ LEVEL1 === */
-.system {
+#hud {
   position:absolute;
-  left:50%;
-  transform:translateX(-50%);
+  top:16px;
+  left:16px;
+  font-size:13px;
+  opacity:0.7;
+  letter-spacing:1px;
+}
+
+#status {
+  position:absolute;
+  top:40px;
+  left:16px;
   font-size:11px;
-  letter-spacing:2px;
   opacity:0.6;
-  color:#9fe7ff;
-  text-decoration: underline;
-  text-underline-offset:4px;
-  cursor:pointer;
-  z-index:10;
-  transition:opacity 0.3s ease;
-}
-.system:hover { opacity:1; }
-
-/* system1 — перший ряд */
-#system1 {
-  bottom:42px;
 }
 
-/* project line — як на першій сторінці */
-#project {
-  bottom:22px;
-  cursor:default;
+#data {
+  position:absolute;
+  bottom:56px;
+  left:16px;
+  font-size:10px;
+  opacity:0.6;
+  max-width:420px;
+  line-height:1.4;
+}
+
+#data .real { color:#0f0; font-weight:bold; }
+#data .fallback { color:#888; }
+#data .warning { color:#ff0; }
+
+#clock {
+  position:absolute;
+  bottom:56px;
+  right:16px;
+  font-size:11px;
+  opacity:0.45;
+  color:#6cf;
+  text-align:right;
+  line-height:1.3;
+}
+
+/* footer */
+#footer {
+  position:absolute;
+  bottom:16px;
+  width:100%;
+  text-align:center;
+  font-size:11px;
+  letter-spacing:1px;
+  opacity:0.55;
+}
+
+#footer a {
+  color:#0af;
+  text-decoration:none;
+  margin-left:12px;
+}
+
+#footer a:hover {
+  color:#6cf;
+  opacity:0.9;
 }
 </style>
 </head>
 
 <body>
 
-<canvas id="c"></canvas>
+<div id="hud">GEOMETRIC CHAOS — SMOOTH PULSE</div>
+<div id="status"></div>
+<div id="data">ініціалізація…</div>
+<div id="clock">—</div>
 
-<!-- SYSTEM ROWS -->
-<a id="system1" class="system" href="https://lavandaaudit.github.io/test3/" target="_blank">
-  system1
-</a>
-
-<div id="project" class="system">
-  ibonarium project 2026 by lavanda level2
+<div id="footer">
+  ibonarium project 2026 by lavanda.level#2
+  <a href="https://lavandaaudit.github.io/level1/#" target="_blank">system 1</a>
 </div>
 
+<canvas id="c"></canvas>
+
 <script>
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d");
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const dataDiv = document.getElementById('data');
+const clockDiv = document.getElementById('clock');
+const statusDiv = document.getElementById('status');
 
 function resize(){
   canvas.width = innerWidth;
   canvas.height = innerHeight;
 }
-window.addEventListener("resize", resize);
+addEventListener('resize', resize);
 resize();
 
-/* === STARS — як level1 === */
-const stars = [];
-for(let i=0;i<340;i++){
+/* ===== CLOCK ===== */
+const startTime = Date.now();
+function rel(ms){
+  const s = Math.floor(ms/1000);
+  if(s<60) return `+${s}s`;
+  const m = Math.floor(s/60);
+  if(m<60) return `+${m}m ${s%60}s`;
+  return `+${Math.floor(m/60)}h ${m%60}m`;
+}
+setInterval(()=>{
+  const d = new Date();
+  clockDiv.innerHTML =
+    `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}<br>${rel(Date.now()-startTime)}`;
+},1000);
+
+/* ===== STARS ===== */
+const stars=[];
+for(let i=0;i<280;i++){
   stars.push({
-    x: Math.random()*canvas.width,
-    y: Math.random()*canvas.height,
-    s: Math.random()*1.4+0.3,
-    a: Math.random()*0.5+0.25,
-    t: Math.random()*Math.PI*2,
-    v: Math.random()*0.015+0.004
+    x:Math.random()*innerWidth,
+    y:Math.random()*innerHeight,
+    s:Math.random()*1.5+0.3,
+    a:Math.random()*0.4+0.25,
+    t:Math.random()*0.02+0.006
   });
 }
 
-let t = 0;
+/* ===== DATA ===== */
+let realData={
+  seismic:.5, magnetic:.5, atmosphere_wind:.5,
+  atmosphere_temp:.5, solar_radiation:.5,
+  solar_wind:.5, precipitation:.5, chaos:.5
+};
 
-/* === SHAPES === */
-function triangle(cx, cy, r, rot) {
-  ctx.beginPath();
-  for (let i = 0; i < 3; i++) {
-    const a = rot + i * Math.PI * 2 / 3;
-    const x = cx + Math.cos(a) * r;
-    const y = cy + Math.sin(a) * r;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-}
+/* ===== BLOBS ===== */
+const blobs=[
+ {p:'seismic',c:'rgba(220,60,80,',ph:0},
+ {p:'magnetic',c:'rgba(60,180,255,',ph:1.4},
+ {p:'atmosphere_wind',c:'rgba(80,255,160,',ph:2.8},
+ {p:'atmosphere_temp',c:'rgba(255,180,60,',ph:4.2},
+ {p:'solar_radiation',c:'rgba(255,240,100,',ph:5.6},
+];
 
-function polygon(cx, cy, r, n, rot) {
-  ctx.beginPath();
-  for (let i = 0; i < n; i++) {
-    const a = rot + i * Math.PI * 2 / n;
-    const x = cx + Math.cos(a) * r;
-    const y = cy + Math.sin(a) * r;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-}
+blobs.forEach(b=>{
+  b.a=Math.random()*Math.PI*2;
+  b.d=70+Math.random()*40;
+  b.sz=6;
+});
 
-/* === LOOP === */
+/* ===== LOOP ===== */
+let t=0;
 function loop(){
-  t += 0.01;
-
-  ctx.fillStyle = "rgba(0,0,0,0.07)";
+  t+=0.016;
+  ctx.fillStyle='rgba(0,0,0,0.08)';
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  /* STARS */
+  const cx=canvas.width/2, cy=canvas.height/2;
+
+  /* stars */
   stars.forEach(s=>{
-    s.t += s.v;
-    const tw = Math.sin(s.t)*0.25;
-    ctx.fillStyle = `rgba(220,235,255,${s.a+tw})`;
-    ctx.fillRect(s.x, s.y, s.s, s.s);
+    const tw=Math.sin(t*12*s.t+s.x*0.01)*0.2;
+    ctx.fillStyle=`rgba(220,235,255,${Math.max(0.08,s.a+tw)})`;
+    ctx.fillRect(s.x,s.y,s.s,s.s);
   });
 
-  const cx = canvas.width/2;
-  const cy = canvas.height/2;
+  /* blobs */
+  blobs.forEach(b=>{
+    b.a+=0.01+realData.chaos*0.04;
+    const pulse=Math.sin(t+b.ph)*0.3;
+    const x=cx+Math.cos(b.a)*(b.d+realData[b.p]*60);
+    const y=cy+Math.sin(b.a)*(b.d+realData[b.p]*60);
+    ctx.fillStyle=b.c+(0.35+realData[b.p]*0.5)+')';
+    ctx.beginPath();
+    ctx.arc(x,y,b.sz*(1+pulse*0.3),0,Math.PI*2);
+    ctx.fill();
+  });
 
-  const pulse = Math.sin(t*2)*0.5+0.5;
-  const base = 85 + pulse*45;
-
-  /* CORE TRIANGLE */
-  triangle(cx,cy,base,t*0.6);
-  ctx.strokeStyle = "rgba(140,240,255,0.7)";
-  ctx.lineWidth = 1.4;
-  ctx.stroke();
-
-  /* INNER TRIANGLE */
-  triangle(cx,cy,base*0.55,-t*0.9);
-  ctx.strokeStyle = "rgba(255,190,140,0.45)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  /* OUTER GLOW */
-  triangle(cx,cy,base*1.4,t*0.25);
-  ctx.strokeStyle = `rgba(120,220,255,${0.15+pulse*0.25})`;
-  ctx.lineWidth = 5;
-  ctx.stroke();
-
-  /* POLYGON RING */
-  polygon(cx,cy,base*1.9,5,-t*0.3);
-  ctx.strokeStyle = "rgba(180,140,255,0.12)";
-  ctx.lineWidth = 1;
+  /* ===== TRIANGLE CORE (FIXED) ===== */
+  const R=120+Math.sin(t*0.4)*18;
+  ctx.beginPath();
+  for(let i=0;i<3;i++){
+    const a=i*Math.PI*2/3+t*0.12;
+    const x=cx+Math.cos(a)*R;
+    const y=cy+Math.sin(a)*R;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle=`rgba(255,200,120,${0.08+realData.chaos*0.15})`;
+  ctx.lineWidth=2;
   ctx.stroke();
 
   requestAnimationFrame(loop);
 }
-
 loop();
 </script>
 
