@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<title>LEVEL 2 · SYSTEM SIGNAL</title>
+<title>LEVEL 2 · IBONARIUM</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -22,24 +22,32 @@ canvas {
   inset:0;
 }
 
-/* === SYSTEM TEXT (ТОЧНА КОПІЯ LEVEL1) === */
-#system {
-  position: absolute;
-  bottom: 22px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
-  letter-spacing: 2px;
-  opacity: 0.6;
-  color: #9fe7ff;
+/* === SYSTEM TEXT — КОПІЯ LEVEL1 === */
+.system {
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:11px;
+  letter-spacing:2px;
+  opacity:0.6;
+  color:#9fe7ff;
   text-decoration: underline;
-  text-underline-offset: 4px;
-  cursor: pointer;
-  z-index: 10;
-  transition: opacity 0.3s ease;
+  text-underline-offset:4px;
+  cursor:pointer;
+  z-index:10;
+  transition:opacity 0.3s ease;
 }
-#system:hover {
-  opacity: 1;
+.system:hover { opacity:1; }
+
+/* system1 — перший ряд */
+#system1 {
+  bottom:42px;
+}
+
+/* project line — як на першій сторінці */
+#project {
+  bottom:22px;
+  cursor:default;
 }
 </style>
 </head>
@@ -48,10 +56,14 @@ canvas {
 
 <canvas id="c"></canvas>
 
-<!-- SYSTEM ROW (копія radio) -->
-<a id="system" href="https://lavandaaudit.github.io/test3/" target="_blank">
+<!-- SYSTEM ROWS -->
+<a id="system1" class="system" href="https://lavandaaudit.github.io/test3/" target="_blank">
   system1
 </a>
+
+<div id="project" class="system">
+  ibonarium project 2026 by lavanda level2
+</div>
 
 <script>
 const canvas = document.getElementById("c");
@@ -64,7 +76,7 @@ function resize(){
 window.addEventListener("resize", resize);
 resize();
 
-/* === STARS (як level1) === */
+/* === STARS — як level1 === */
 const stars = [];
 for(let i=0;i<340;i++){
   stars.push({
@@ -79,7 +91,7 @@ for(let i=0;i<340;i++){
 
 let t = 0;
 
-/* === DRAW SHAPES === */
+/* === SHAPES === */
 function triangle(cx, cy, r, rot) {
   ctx.beginPath();
   for (let i = 0; i < 3; i++) {
