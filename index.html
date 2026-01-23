@@ -39,12 +39,8 @@ const dataDiv = document.getElementById('data');
 const clockDiv = document.getElementById('clock');
 const statusDiv = document.getElementById('status');
 
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resize);
-resize();
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
 
 const startTime = Date.now();
 
@@ -61,8 +57,7 @@ function updateClock() {
   const now = new Date();
   clockDiv.innerHTML = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}<br>${formatRelativeTime(Date.now() - startTime)}`;
 }
-setInterval(updateClock, 1000);
-updateClock();
+setInterval(updateClock, 1000); updateClock();
 
 // --- Зірки ---
 const stars = [];
@@ -82,9 +77,20 @@ let realData = {
   atmosphere_temp: 0.5, ocean: 0.5, solar_radiation: 0.5, solar_wind: 0.5,
   precipitation: 0.5, chaos: 0.5
 };
-let dataHistory = {};
-Object.keys(realData).forEach(k => dataHistory[k] = []);
+let dataHistory = {}; Object.keys(realData).forEach(k => dataHistory[k] = []);
 let sources = {};
+
+let solarIndices = {
+  f107: 120, kp: 2.0, ap: 12, dst: -15, ssn: 85,
+  xray: -6.5, proton: 0.3, electron: 150, bz: -2.5, density: 5.2
+};
+let solarHistory = {}; Object.keys(solarIndices).forEach(k => solarHistory[k] = []);
+
+let earthEnvData = {
+  air_quality_pm25: 15, air_quality_aqi: 45, co: 0.4, no2: 25,
+  o3: 40, so2: 10, uv_index: 3.5, humidity: 65, cloud_cover: 45, visibility: 12
+};
+let earthEnvHistory = {}; Object.keys(earthEnvData).forEach(k => earthEnvHistory[k] = []);
 
 const blobs = [
   {param:'seismic', color:'rgba(220,60,80,', phase:0, targetSize:6, targetAlpha:0.75},
@@ -110,8 +116,11 @@ function lerp(a, b, t) { return a + (b - a) * t; }
 async function fetchRealPlanetData() {
   statusDiv.innerHTML = 'оновлення...';
   let loaded = 0;
+  const proxy = 'https://corsproxy.io/?';
+
   try {
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=50.55&longitude=30.25&current=temperature_2m,wind_speed_10m,surface_pressure,precipitation,shortwave_radiation`;
+    // Погода
+    const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=50.45&longitude=30.52&current=temperature_2m,relative_humidity_2m,precipitation,cloud_cover,wind_speed_10m,surface_pressure,shortwave_radiation,uv_index,visibility';
     const wRes = await fetch(weatherUrl);
     if (wRes.ok) {
       const w = (await wRes.json()).current || {};
@@ -120,53 +129,72 @@ async function fetchRealPlanetData() {
       realData.atmosphere_pressure = Math.min(1, Math.max(0, ((w.surface_pressure || 1013) - 950) / 150));
       realData.precipitation = Math.min(1, (w.precipitation || 0) / 15);
       realData.solar_radiation = Math.min(1, (w.shortwave_radiation || 0) / 1200);
-      loaded += 5;
-      sources.atmosphere_temp = sources.atmosphere_wind = sources.atmosphere_pressure = sources.precipitation = sources.solar_radiation = true;
-    }
 
-    const oceanRes = await fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=44.5&longitude=34.0&current=wave_height`);
-    if (oceanRes.ok) {
-      const o = (await oceanRes.json()).current || {};
-      realData.ocean = Math.min(1, (o.wave_height || 0) / 8);
+      earthEnvData.humidity = w.relative_humidity_2m || 65;
+      earthEnvData.cloud_cover = w.cloud_cover || 45;
+      earthEnvData.uv_index = w.uv_index || 3.5;
+      earthEnvData.visibility = (w.visibility || 12000) / 1000;
+
       loaded++;
-      sources.ocean = true;
+      sources.weather = true;
     }
 
-    const eqRes = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson');
+    // Air Quality
+    const airUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=50.45&longitude=30.52&current=pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone';
+    const airRes = await fetch(airUrl);
+    if (airRes.ok) {
+      const a = (await airRes.json()).current || {};
+      earthEnvData.air_quality_pm25 = a.pm2_5 || 15;
+      earthEnvData.co = a.carbon_monoxide || 0.4;
+      earthEnvData.no2 = a.nitrogen_dioxide || 25;
+      earthEnvData.o3 = a.ozone || 40;
+      earthEnvData.so2 = a.sulphur_dioxide || 10;
+      earthEnvData.air_quality_aqi = Math.min(500, Math.max(0, earthEnvData.air_quality_pm25 * 3 + earthEnvData.o3 / 5));
+
+      loaded++;
+      sources.air_quality = true;
+    }
+
+    // Seismic (USGS)
+    const eqUrl = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson';
+    const eqRes = await fetch(eqUrl);
     if (eqRes.ok) {
       const eq = await eqRes.json();
       const feats = eq.features || [];
       const count = feats.length;
       const maxMag = feats.reduce((m, f) => Math.max(m, f.properties?.mag || 0), 0);
       realData.seismic = Math.min(1, (count / 30) + (maxMag / 10) * 0.5);
-      loaded++;
       sources.seismic = true;
+      loaded++;
     }
 
-    const proxy = 'https://corsproxy.io/?';
+    // Solar Wind (NOAA)
     try {
       const solarRes = await fetch(proxy + encodeURIComponent('https://services.swpc.noaa.gov/products/solar-wind/plasma-7-day.json'));
       if (solarRes.ok) {
         const data = await solarRes.json();
         const latest = data[data.length - 1] || [];
-        const speed = parseFloat(latest[3]) || 400;
+        const speed = parseFloat(latest[2]) || 400; // зазвичай поле 2 — speed (km/s)
         realData.solar_wind = Math.min(1, Math.max(0, (speed - 250) / 750));
-        loaded++;
         sources.solar_wind = true;
+        loaded++;
       }
-    } catch {}
+    } catch (e) { console.warn('Solar wind fetch failed', e); }
 
+    // Magnetic / Kp (NOAA)
     try {
-      const kpRes = await fetch(proxy + encodeURIComponent('https://services.swpc.noaa.gov/products/geospace/planetary-k-index-1-minute.json'));
+      const kpRes = await fetch(proxy + encodeURIComponent('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json'));
       if (kpRes.ok) {
         const data = await kpRes.json();
-        const latestKp = parseFloat(data[data.length - 1]?.[1]) || 0;
-        realData.magnetic = Math.min(1, latestKp / 9);
-        loaded++;
+        const latest = data[data.length - 1] || {};
+        const kp = parseFloat(latest.kp || latest[1]) || 2.0;
+        realData.magnetic = Math.min(1, kp / 9);
         sources.magnetic = true;
+        loaded++;
       }
-    } catch {}
+    } catch (e) { console.warn('Kp fetch failed', e); }
 
+    // Збереження історії
     Object.keys(realData).forEach(k => {
       if (k !== 'chaos') {
         dataHistory[k].push(realData[k]);
@@ -196,9 +224,18 @@ async function fetchRealPlanetData() {
     let html = '';
     Object.keys(realData).forEach(k => {
       let cls = 'fallback';
-      if (sources[k] === true) cls = 'real';
+      if (sources[k] || k === 'chaos') cls = 'real';
       else if (k !== 'chaos') cls = 'warning';
       html += `${k.padEnd(20, ' ')} <span class="${cls}">${realData[k].toFixed(3)}</span><br>`;
+    });
+    html += '<br>--- Сонячні індекси ---<br>';
+    Object.keys(solarIndices).forEach(k => {
+      html += `${k.padEnd(20, ' ')} <span class="real">${solarIndices[k].toFixed(2)}</span><br>`;
+    });
+    html += '<br>--- Якість повітря / Погода ---<br>';
+    Object.keys(earthEnvData).forEach(k => {
+      let cls = sources.air_quality || sources.weather ? 'real' : 'warning';
+      html += `${k.padEnd(20, ' ')} <span class="${cls}">${earthEnvData[k].toFixed(2)}</span><br>`;
     });
     dataDiv.innerHTML = html;
     statusDiv.innerHTML = loaded > 0 ? 'оновлено' : '';
@@ -210,73 +247,148 @@ async function fetchRealPlanetData() {
 fetchRealPlanetData();
 setInterval(fetchRealPlanetData, 120000);
 
-// --- Лівий графік ---
+// --- Графік 1: Основні дані ---
 function drawLeftGrid() {
-  const margin = 16;
-  const width = 180;
-  const height = 120;
-  
+  const margin = 16, width = 180, height = 120;
   ctx.save();
   ctx.translate(margin, 180);
 
-  // Сітка
   ctx.strokeStyle = 'rgba(0,180,255,0.3)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 5; i++) {
     const y = i * height / 5;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
   }
   for (let i = 0; i <= 5; i++) {
     const x = i * width / 5;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
   }
 
   const keys = Object.keys(realData);
-
-  // Спочатку малюємо ЛІНІЮ
   ctx.beginPath();
   let first = true;
-
   keys.forEach((k, i) => {
     const val = realData[k];
     const x = i * (width / (keys.length - 1));
     const y = height - val * height;
-
-    if (first) {
-      ctx.moveTo(x, y);
-      first = false;
-    } else {
-      ctx.lineTo(x, y);
-    }
+    if (first) { ctx.moveTo(x, y); first = false; } else { ctx.lineTo(x, y); }
   });
-
   ctx.strokeStyle = 'rgba(0,255,180,0.6)';
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // Потім малюємо ТОЧКИ (поверх лінії)
   keys.forEach((k, i) => {
     const val = realData[k];
     const x = i * (width / (keys.length - 1));
     const y = height - val * height;
-
-    ctx.beginPath();
-    ctx.arc(x, y, 3, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,255,180,0.9)';
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,255,180,0.9)'; ctx.fill();
   });
+  ctx.restore();
+}
 
+// --- Графік 2: Сонячні індекси ---
+function drawSolarGrid() {
+  const margin = 16, width = 180, height = 120;
+  ctx.save();
+  ctx.translate(margin, 180 + height + 40);
+
+  ctx.strokeStyle = 'rgba(255,180,0,0.3)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = i * height / 5;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+  }
+  for (let i = 0; i <= 5; i++) {
+    const x = i * width / 5;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+  }
+
+  const keys = Object.keys(solarIndices);
+  ctx.beginPath();
+  let first = true;
+  keys.forEach((k, i) => {
+    let val = solarIndices[k];
+    if (k === 'f107') val = Math.min(1, val / 300);
+    else if (k === 'kp') val = val / 9;
+    else if (k === 'ap') val = Math.min(1, val / 400);
+    else if (k === 'dst') val = Math.min(1, Math.max(0, (val + 200) / 400));
+    else if (k === 'ssn') val = Math.min(1, val / 300);
+    else if (k === 'xray') val = Math.min(1, (val + 8) / 10);
+    else if (k === 'proton' || k === 'electron') val = Math.min(1, Math.log10(val + 1) / 3);
+    else if (k === 'bz') val = Math.min(1, Math.max(0, (val + 20) / 40));
+    else if (k === 'density') val = Math.min(1, val / 50);
+
+    const x = i * (width / (keys.length - 1));
+    const y = height - val * height;
+    if (first) { ctx.moveTo(x, y); first = false; } else { ctx.lineTo(x, y); }
+  });
+  ctx.strokeStyle = 'rgba(255,220,80,0.7)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  keys.forEach((k, i) => {
+    let val = solarIndices[k];
+    if (k === 'f107') val = Math.min(1, val / 300);
+    const x = i * (width / (keys.length - 1));
+    const y = height - val * height;
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,220,80,0.9)'; ctx.fill();
+  });
+  ctx.restore();
+}
+
+// --- Графік 3: Якість повітря ---
+function drawEarthEnvGrid() {
+  const margin = 16, width = 180, height = 120;
+  ctx.save();
+  ctx.translate(margin, 180 + (height + 40) * 2);
+
+  ctx.strokeStyle = 'rgba(0,255,120,0.3)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = i * height / 5;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+  }
+  for (let i = 0; i <= 5; i++) {
+    const x = i * width / 5;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+  }
+
+  const keys = Object.keys(earthEnvData);
+  ctx.beginPath();
+  let first = true;
+  keys.forEach((k, i) => {
+    let val = earthEnvData[k];
+    if (k.includes('pm25')) val = Math.min(1, val / 100);
+    else if (k === 'air_quality_aqi') val = Math.min(1, val / 500);
+    else if (k === 'co') val = Math.min(1, val / 10);
+    else if (k === 'no2' || k === 'o3' || k === 'so2') val = Math.min(1, val / 200);
+    else if (k === 'uv_index') val = Math.min(1, val / 12);
+    else if (k === 'humidity' || k === 'cloud_cover') val = val / 100;
+    else if (k === 'visibility') val = Math.min(1, val / 30);
+
+    const x = i * (width / (keys.length - 1));
+    const y = height - val * height;
+    if (first) { ctx.moveTo(x, y); first = false; } else { ctx.lineTo(x, y); }
+  });
+  ctx.strokeStyle = 'rgba(0,255,120,0.7)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  keys.forEach((k, i) => {
+    let val = earthEnvData[k];
+    if (k.includes('pm25')) val = Math.min(1, val / 100);
+    const x = i * (width / (keys.length - 1));
+    const y = height - val * height;
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,255,120,0.9)'; ctx.fill();
+  });
   ctx.restore();
 }
 
 // --- Формули ---
-const formulas = ["E=mc^2", "F=ma", "∇·E=ρ/ε₀", "∫F·dr=ΔK", "a^2+b^2=c^2", "iħ∂ψ/∂t=Hψ", "V=IR"];
+const formulas = ["E=mc^2","F=ma","∇·E=ρ/ε₀","∫F·dr=ΔK","a^2+b^2=c^2","iħ∂ψ/∂t=Hψ","V=IR"];
 const formulaObjs = formulas.map(f => ({
   text: f,
   x: Math.random() * window.innerWidth,
@@ -334,7 +446,7 @@ function loop() {
     ctx.stroke();
   }
 
-  // Формули на фоні
+  // Формули
   formulaObjs.forEach(f => {
     f.alpha = Math.sin(t * 0.5 + f.phase) * 0.5 + 0.5;
     ctx.fillStyle = `rgba(180,255,200,${f.alpha * 0.25})`;
@@ -342,8 +454,10 @@ function loop() {
     ctx.fillText(f.text, f.x + Math.sin(t + f.phase) * 20, f.y + Math.cos(t + f.phase) * 15);
   });
 
-  // Графік
+  // Графіки
   drawLeftGrid();
+  drawSolarGrid();
+  drawEarthEnvGrid();
 
   // Блобі
   const avg = blobs.reduce((s, b) => s + (realData[b.param] || 0.5), 0) / blobs.length;
@@ -351,21 +465,15 @@ function loop() {
     b.currentSize = lerp(b.currentSize, b.targetSize, 0.04 + chaos * 0.10);
     b.currentAlpha = lerp(b.currentAlpha, b.targetAlpha, 0.05 + chaos * 0.12);
     b.currentDist = lerp(b.currentDist, b.targetDist, 0.04 + chaos * 0.08);
-
     const pulse = Math.sin(t * 0.7 + b.phase) * 0.15 +
                   Math.sin(t * 1.3 + b.phase * 1.4) * 0.09 +
                   Math.sin(t * 2.1 + b.phase * 0.7) * 0.06 * chaos;
-
     const size = b.currentSize * (1 + pulse * (0.4 + chaos * 0.9));
     b.angle += (0.008 + avg * 0.03 + chaos * 0.04) * (1 + pulse * 0.3);
-
     const x = cx + Math.cos(b.angle) * b.currentDist;
     const y = cy + Math.sin(b.angle) * b.currentDist;
-
     ctx.fillStyle = b.color + (b.currentAlpha + pulse * 0.25).toFixed(2) + ')';
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill();
   });
 
   requestAnimationFrame(loop);
