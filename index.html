@@ -22,17 +22,14 @@ canvas { display:block; }
 <div id="data">ініціалізація...</div>
 <div id="clock">—</div>
 <canvas id="c"></canvas>
-
 <script>
 const canvas=document.getElementById('c');
 const ctx=canvas.getContext('2d');
 const dataDiv=document.getElementById('data');
 const clockDiv=document.getElementById('clock');
 const statusDiv=document.getElementById('status');
-
 function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
 window.addEventListener('resize',resize);resize();
-
 const startTime=Date.now();
 function formatRelativeTime(ms){
   const s=Math.floor(ms/1000);
@@ -47,18 +44,15 @@ function updateClock(){
   clockDiv.innerHTML=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}<br>${formatRelativeTime(Date.now()-startTime)}`;
 }
 setInterval(updateClock,1000);updateClock();
-
 // --- Зірки ---
 const stars=[];
 for(let i=0;i<300;i++){
   stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,size:Math.random()*1.2+0.4,baseAlpha:Math.random()*0.4+0.25,twinkle:Math.random()*0.015+0.006});
 }
-
 // --- Дані ---
 let realData={seismic:0.5,magnetic:0.5,atmosphere_wind:0.5,atmosphere_pressure:0.5,atmosphere_temp:0.5,ocean:0.5,solar_radiation:0.5,solar_wind:0.5,precipitation:0.5,chaos:0.5};
 let dataHistory={};Object.keys(realData).forEach(k=>dataHistory[k]=[]);
 let sources={};
-
 const blobs=[
   {param:'seismic',color:'rgba(220,60,80,',phase:0,targetSize:6,targetAlpha:0.75},
   {param:'magnetic',color:'rgba(60,180,255,',phase:1.2,targetSize:6,targetAlpha:0.75},
@@ -69,9 +63,7 @@ const blobs=[
   {param:'precipitation',color:'rgba(100,220,255,',phase:7.2,targetSize:6,targetAlpha:0.7}
 ];
 blobs.forEach(b=>{b.angle=Math.random()*Math.PI*2;b.radius=60+Math.random()*50;b.currentSize=b.targetSize;b.currentAlpha=b.targetAlpha;b.currentDist=b.radius;});
-
 function lerp(a,b,t){return a+(b-a)*t;}
-
 // --- Fetch real-time data ---
 async function fetchRealPlanetData(){
   statusDiv.innerHTML='оновлення...'; let loaded=0;
@@ -104,12 +96,11 @@ async function fetchRealPlanetData(){
   }catch(e){console.error(e);statusDiv.innerHTML='';}
 }
 fetchRealPlanetData(); setInterval(fetchRealPlanetData,120000);
-
 // --- Лівий графік (офіційна сітка з підписами) ---
 function drawLeftGrid(){
   const margin=16, width=180, height=120;
   ctx.save();
-  ctx.translate(margin, canvas.height-margin-height);
+  ctx.translate(margin, canvas.height-margin-height-200);
   // Сітка
   ctx.strokeStyle='rgba(0,180,255,0.3)';
   ctx.lineWidth=1;
@@ -135,20 +126,29 @@ function drawLeftGrid(){
     ctx.font='9px Courier New';
     ctx.fillText(k,x-15,height+12);
   });
+  // Лінії між точками
+  ctx.beginPath();
+  let first = true;
+  keys.forEach((k,i)=>{
+    const val=realData[k];
+    const x=i*(width/(keys.length-1));
+    const y=height-val*height;
+    if(first){ ctx.moveTo(x,y); first=false; } else{ ctx.lineTo(x,y); }
+  });
+  ctx.strokeStyle='rgba(0,255,180,0.6)';
+  ctx.lineWidth=2;
+  ctx.stroke();
   ctx.restore();
 }
-
 // --- Формули ---
 const formulas=["E=mc^2","F=ma","∇·E=ρ/ε₀","∫F·dr=ΔK","a^2+b^2=c^2","iħ∂ψ/∂t=Hψ","V=IR"];
 const formulaObjs=formulas.map(f=>({text:f,x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,alpha:0,phase:Math.random()*Math.PI*2}));
-
 // --- Основна геометрична анімація ---
 let t=0;
 function loop(){
   t+=0.016;
   ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(0,0,canvas.width,canvas.height);
   const chaos=realData.chaos, cx=canvas.width/2, cy=canvas.height/2;
-
   // Зірки
   const starMod=1-chaos*0.3;
   stars.forEach(s=>{
@@ -156,7 +156,6 @@ function loop(){
     ctx.fillStyle=`rgba(220,235,255,${Math.max(0.08,s.baseAlpha+tw).toFixed(3)})`;
     ctx.fillRect(s.x,s.y,s.size,s.size);
   });
-
   // Пульсуюча сітка
   const gridSpacing=30;
   for(let gx=0; gx<canvas.width; gx+=gridSpacing){
@@ -171,7 +170,6 @@ function loop(){
       ctx.stroke();
     }
   }
-
   // Спіралі
   for(let s=0;s<4;s++){
     ctx.beginPath();
@@ -185,7 +183,6 @@ function loop(){
     ctx.strokeStyle=`rgba(255,${100+s*40},${50+s*30},${0.05+realData.solar_wind*0.15})`;
     ctx.lineWidth=1+s*0.5; ctx.stroke();
   }
-
   // Формули на фоні
   formulaObjs.forEach(f=>{
     f.alpha=Math.sin(t*0.5+f.phase)*0.5+0.5;
@@ -193,10 +190,8 @@ function loop(){
     ctx.font='16px Courier New';
     ctx.fillText(f.text,f.x+Math.sin(t+f.phase)*20,f.y+Math.cos(t+f.phase)*15);
   });
-
   // Лівий графік
   drawLeftGrid();
-
   // Анімація блобів
   const avg=blobs.reduce((s,b)=>s + (realData[b.param]||0.5),0)/blobs.length;
   blobs.forEach(b=>{
@@ -211,7 +206,6 @@ function loop(){
     ctx.fillStyle=b.color+(b.currentAlpha+pulse*0.25).toFixed(2)+')';
     ctx.beginPath(); ctx.arc(x,y,size,0,Math.PI*2); ctx.fill();
   });
-
   requestAnimationFrame(loop);
 }
 loop();
