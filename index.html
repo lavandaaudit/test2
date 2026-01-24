@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>PLANET CHAOS · EXPANDED · 2026</title>
+    <title>PLANET CHAOS · arhive 2026 lavanda audit · 2026</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         html,
@@ -212,7 +212,7 @@
 </head>
 
 <body>
-    <div id="hud">Lavanda.audit.ibonarium.project.2026.february.EXPANDED</div>
+    <div id="hud">ibonarium.project.arhive 2026 lavanda audit</div>
     <div id="status">ініціалізація...</div>
     <div id="heatmap"></div>
 
@@ -372,7 +372,7 @@
             }
 
             // =========================================================================================
-            // 3. КОСМОС
+            // 3. КОСМОС (UPDATED: Added 3 new sources)
             // =========================================================================================
             html += '<div class="category">КОСМОС</div>';
             const plasma = await fetchWithProxy('https://services.swpc.noaa.gov/products/solar-wind/plasma-7-day.json');
@@ -436,14 +436,46 @@
                 loaded += 5;
             }
 
+            // --- NEW COSMOS SOURCES (Filling the request for more data) ---
+
+            // 1. Sunspot Number (Daily)
+            const sunspots = await fetchWithProxy('https://services.swpc.noaa.gov/json/solar-cycle/predicted-solar-cycle.json');
+            if (sunspots && sunspots.length > 0) {
+                // Just taking the last prediction as a proxy for "current activity level" context
+                const lastSpot = sunspots[sunspots.length - 1];
+                const val = lastSpot['predicted_sunspot_number'];
+                html += `<div class="row"><span class="label">Sunspot Num </span><span class="val">${val}</span></div>`;
+                heatmapValues.push({ value: val, color: '#ffd700' });
+                loaded++;
+            }
+
+            // 2. Proton Flux (Integral Proton Flux > 10 MeV)
+            const proton = await fetchWithProxy('https://services.swpc.noaa.gov/json/goes/primary/integral-protons-1-day.json');
+            if (proton && proton.length > 0) {
+                const lastProton = proton[proton.length - 1];
+                const val = parseFloat(lastProton.flux);
+                html += `<div class="row"><span class="label">Proton Flux </span><span class="val ${getColorClass(val, { watch: 10, warn: 100, danger: 1000 })}">${val.toExponential(1)} pfu</span></div>`;
+                heatmapValues.push({ value: val, color: getColor(val, { watch: 10, warn: 100, danger: 1000 }) });
+                loaded++;
+            }
+
+            // 3. Electron Flux (> 2 MeV)
+            const electron = await fetchWithProxy('https://services.swpc.noaa.gov/json/goes/primary/integral-electrons-1-day.json');
+            if (electron && electron.length > 0) {
+                const lastElectron = electron[electron.length - 1];
+                const val = parseFloat(lastElectron.flux);
+                html += `<div class="row"><span class="label">Electron Flux </span><span class="val ${getColorClass(val, { watch: 1000, warn: 10000, danger: 100000 })}">${val.toExponential(1)} pfu</span></div>`;
+                heatmapValues.push({ value: val, color: getColor(val, { watch: 1000, warn: 10000, danger: 100000 }) });
+                loaded++;
+            }
+
+
             // =========================================================================================
-            // 4. ВОДА (GLOBAL & BLACK SEA) - UPDATED
+            // 4. ВОДА (GLOBAL & BLACK SEA)
             // =========================================================================================
             html += '<div class="category">ВОДА (GLOBAL)</div>';
-
-            // Use a simpler, clearer set of coordinates for improved reliability
             const waterPoints = [
-                { name: 'Black Sea', lat: 43.0, lon: 34.0 }, // Slightly more central black sea
+                { name: 'Black Sea', lat: 43.0, lon: 34.0 },
                 { name: 'Mediterranean', lat: 35.0, lon: 18.0 },
                 { name: 'North Atlantic', lat: 45.0, lon: -30.0 },
                 { name: 'Pacific Ocean', lat: 20.0, lon: -155.0 }
