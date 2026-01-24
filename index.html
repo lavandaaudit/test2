@@ -1,4 +1,4 @@
-`<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="uk">
 
 <head>
@@ -206,37 +206,77 @@
         }
 
         @media (max-width: 800px) {
-            #months-nav {
-                top: 70px;
-                left: 16px;
-                width: 100%;
+            #ui-layer {
                 display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-                height: auto;
+                flex-direction: column;
+                pointer-events: auto;
+                overflow-y: auto;
+                padding: 16px;
+                box-sizing: border-box;
+                background: rgba(0, 0, 0, 0.4);
             }
 
-            #data-main {
-                top: 200px;
-                left: 16px;
-                right: 16px;
-                width: auto;
-                grid-template-columns: 1fr;
-                background: rgba(0, 0, 0, 0.7);
-                padding: 10px;
-            }
-
-            #heatmap {
-                top: 50px;
-                left: 16px;
-                right: 16px;
-                grid-template-columns: repeat(auto-fill, 14px);
-                /* Responsive on mobile */
-                width: auto;
+            #hud,
+            #hud-sub,
+            #status,
+            #heatmap,
+            #months-nav,
+            #data-main,
+            #clock {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                right: auto !important;
+                bottom: auto !important;
+                width: 100% !important;
+                margin-bottom: 24px !important;
+                opacity: 1 !important;
             }
 
             #hud {
-                font-size: 12px;
+                font-size: 16px;
+            }
+
+            #hud-sub {
+                font-size: 11px;
+                margin-top: -16px;
+                margin-bottom: 12px !important;
+            }
+
+            #status {
+                font-size: 11px;
+                margin-bottom: 16px !important;
+            }
+
+            #heatmap {
+                grid-template-columns: repeat(auto-fill, 14px);
+                gap: 3px;
+            }
+
+            #months-nav {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                width: 100% !important;
+            }
+
+            #months-nav a {
+                display: inline-block;
+            }
+
+            #data-main {
+                display: grid;
+                grid-template-columns: 1fr;
+                height: auto !important;
+                overflow-y: visible !important;
+                padding-right: 0;
+            }
+
+            #clock {
+                text-align: left;
+                margin-top: 20px;
+                border-top: 1px solid rgba(102, 204, 255, 0.2);
+                padding-top: 10px;
             }
         }
     </style>
@@ -255,18 +295,18 @@
         <div id="heatmap"></div>
 
         <div id="months-nav" class="interactive">
-            <a href="#">JANUARY</a>
-            <a href="#">FEBRUARY</a>
-            <a href="#">MARCH</a>
-            <a href="#">APRIL</a>
-            <a href="#">MAY</a>
-            <a href="#">JUNE</a>
-            <a href="#">JULY</a>
-            <a href="#">AUGUST</a>
-            <a href="#">SEPTEMBER</a>
-            <a href="#">OCTOBER</a>
-            <a href="#">NOVEMBER</a>
-            <a href="#">DECEMBER</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#" target="_blank">JANUARY</a>
+            <a href="https://lavandaaudit.github.io/ibonarium.soncemetr.2026/" target="_blank">FEBRUARY</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#" target="_blank">MARCH</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#" target="_blank">APRIL</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#" target="_blank">MAY</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#" target="_blank">JUNE</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#" target="_blank">JULY</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#" target="_blank">AUGUST</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#" target="_blank">SEPTEMBER</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#" target="_blank">OCTOBER</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#" target="_blank">NOVEMBER</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#" target="_blank">DECEMBER</a>
         </div>
 
         <div id="data-main" class="interactive"></div>
@@ -795,12 +835,6 @@
                 ctx.fillStyle = `rgba(220,235,255,${Math.max(0.08, s.baseAlpha + tw).toFixed(3)})`;
                 ctx.fillRect(s.x, s.y, s.size, s.size);
             });
-            if (t % 3 < 2.9) {
-                ctx.strokeStyle = 'rgba(180,100,255,0.03)';
-                for (let gx = 0; gx < canvas.width; gx += 40) {
-                    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke();
-                }
-            }
             for (let s = 0; s < 4; s++) {
                 ctx.beginPath();
                 for (let i = 0; i < 90; i++) {
