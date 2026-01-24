@@ -87,9 +87,7 @@
         #heatmap {
             position: absolute;
             top: 70px;
-            /* Aligned with data start */
             left: 550px;
-            /* To the right of the data columns */
             display: flex;
             flex-wrap: wrap;
             width: 180px;
@@ -177,14 +175,6 @@
 
         /* Mobile Version Preparation */
         @media (max-width: 800px) {
-            /* Stack elements vertically on smaller screens */
-
-            /* 1. Nav moves up but keeps small footprint or goes horizontal? 
-       Let's keep vertical but push data right or stack. 
-       Actually stacking is safer. */
-
-            /* Months Nav: Make horizontal scroll or top block? 
-       Let's put months under status */
             #months-nav {
                 top: 60px;
                 left: 16px;
@@ -201,25 +191,19 @@
                 margin-right: 5px;
             }
 
-            /* Heatmap: Under navigation */
             #heatmap {
                 top: 110px;
                 left: 16px;
             }
 
-            /* Data: Under heatmap */
             #data {
                 top: 300px;
-                /* Push down */
                 left: 16px;
-                /* Reset left margin */
                 right: 16px;
                 grid-template-columns: 1fr;
-                /* Single column */
                 gap: 10px;
             }
 
-            /* Hide scrollbar on mobile mainly */
             ::-webkit-scrollbar {
                 width: 4px;
             }
@@ -307,6 +291,7 @@
             });
         }
 
+        // SMART FETCH
         async function fetchSmart(url) {
             try {
                 const res = await fetch(url);
@@ -319,9 +304,13 @@
             return null;
         }
 
-        // Internal proxy fallback
+        // Fallback specifically for Yahoo/Others
         async function fetchWithProxy(url) {
-            return await fetchSmart(url);
+            try {
+                const res = await fetch(proxy + encodeURIComponent(url));
+                if (res.ok) return await res.json();
+            } catch (e) { }
+            return null;
         }
 
         async function fetchAllData() {
@@ -330,7 +319,9 @@
             let loaded = 0;
             heatmapValues = [];
 
+            // =========================================================================================
             // 1. ПОГОДА
+            // =========================================================================================
             html += '<div class="category">ПОГОДА (KYIV)</div>';
             const weather = await fetchSmart('https://api.open-meteo.com/v1/forecast?latitude=50.45&longitude=30.52&current=temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m,precipitation,weather_code,is_day');
             if (weather?.current) {
@@ -351,7 +342,9 @@
                 html += `<div class="row"><span class="label">Status </span><span class="val val-warn">Connection Error</span></div>`;
             }
 
+            // =========================================================================================
             // 2. ПОВІТРЯ
+            // =========================================================================================
             html += '<div class="category">ПОВІТРЯ</div>';
             const air = await fetchSmart('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=50.45&longitude=30.52&current=pm10,pm2_5,carbon_monoxide,ozone,european_aqi,nitrogen_dioxide,sulphur_dioxide,aerosol_optical_depth,dust,uv_index,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen');
             if (air?.current) {
@@ -378,9 +371,11 @@
                 loaded += airMetrics.length;
             }
 
+            // =========================================================================================
             // 3. КОСМОС
+            // =========================================================================================
             html += '<div class="category">КОСМОС</div>';
-            const plasma = await fetchSmart('https://services.swpc.noaa.gov/products/solar-wind/plasma-7-day.json');
+            const plasma = await fetchWithProxy('https://services.swpc.noaa.gov/products/solar-wind/plasma-7-day.json');
             if (plasma?.length > 1) {
                 let lastValid = plasma.slice().reverse().find(r => !isNaN(parseFloat(r[3])) && parseFloat(r[3]) > 0);
                 if (lastValid) {
@@ -400,7 +395,7 @@
                 }
             }
 
-            const kpData = await fetchSmart('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json');
+            const kpData = await fetchWithProxy('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json');
             if (kpData?.length) {
                 const lastKp = parseFloat(kpData[kpData.length - 1][1]) || 0;
                 html += `<div class="row"><span class="label">Kp-index </span><span class="val ${getColorClass(lastKp, { watch: 5, warn: 6, danger: 7 })}">${lastKp}</span></div>`;
@@ -414,7 +409,7 @@
                 loaded += 5;
             }
 
-            const dst = await fetchSmart('https://services.swpc.noaa.gov/products/kyoto-dst.json');
+            const dst = await fetchWithProxy('https://services.swpc.noaa.gov/products/kyoto-dst.json');
             if (dst?.length > 0) {
                 const lastDst = parseFloat(dst[dst.length - 1][1]) || 0;
                 html += `<div class="row"><span class="label">Dst Index </span><span class="val ${getColorClass(-lastDst, { watch: 50, warn: 100, danger: 200 })}">${lastDst} nT</span></div>`;
@@ -428,7 +423,7 @@
                 loaded += 5;
             }
 
-            const xray = await fetchSmart('https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json');
+            const xray = await fetchWithProxy('https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json');
             if (xray?.length > 0) {
                 let latest = xray[0];
                 html += `<div class="row"><span class="label">X-ray Flare </span><span class="val">${latest.flux ?? '--'} ${latest.class_type ?? ''}</span></div>`;
@@ -441,27 +436,33 @@
                 loaded += 5;
             }
 
-            // 4. ВОДА
-            html += '<div class="category">ВОДА (BLACK SEA)</div>';
-            const marine = await fetchSmart('https://marine-api.open-meteo.com/v1/marine?latitude=44.0&longitude=30.0&current=wave_height,wave_direction,wave_period,sea_surface_temperature,salinity,wind_wave_height,swell_wave_height');
-            if (marine?.current) {
-                const m = marine.current;
-                const waterMetrics = [
-                    { label: 'Wave Height', value: m.wave_height, thresholds: { watch: 2, warn: 4, danger: 6 }, unit: ' m' },
-                    { label: 'Sea Temp', value: m.sea_surface_temperature, thresholds: { watch: 20, warn: 25, danger: 30 }, unit: ' °C' },
-                    { label: 'Salinity', value: m.salinity ?? 35, thresholds: { watch: 30, warn: 40, danger: 50 }, unit: ' PSU' },
-                    { label: 'Swell Height', value: m.swell_wave_height ?? 0.5, thresholds: { watch: 1, warn: 2, danger: 4 }, unit: ' m' }
-                ];
-                waterMetrics.forEach(m => {
-                    html += `<div class="row"><span class="label">${m.label} </span><span class="val ${getColorClass(m.value, m.thresholds)}">${m.value ?? '--'}${m.unit ?? ''}</span></div>`;
-                    heatmapValues.push({ value: m.value, color: getColor(m.value, m.thresholds) });
-                });
-                loaded += waterMetrics.length;
-            } else {
-                html += `<div class="row"><span class="label">Status </span><span class="val val-warn">No Data</span></div>`;
+            // =========================================================================================
+            // 4. ВОДА (GLOBAL & BLACK SEA) - UPDATED
+            // =========================================================================================
+            html += '<div class="category">ВОДА (GLOBAL)</div>';
+
+            // Use a simpler, clearer set of coordinates for improved reliability
+            const waterPoints = [
+                { name: 'Black Sea', lat: 43.0, lon: 34.0 }, // Slightly more central black sea
+                { name: 'Mediterranean', lat: 35.0, lon: 18.0 },
+                { name: 'North Atlantic', lat: 45.0, lon: -30.0 },
+                { name: 'Pacific Ocean', lat: 20.0, lon: -155.0 }
+            ];
+
+            for (const wp of waterPoints) {
+                const wData = await fetchSmart(`https://marine-api.open-meteo.com/v1/marine?latitude=${wp.lat}&longitude=${wp.lon}&current=wave_height,sea_surface_temperature`);
+                if (wData?.current) {
+                    const wm = wData.current;
+                    html += `<div class="row"><span class="label">${wp.name} Temp </span><span class="val ${getColorClass(wm.sea_surface_temperature, { watch: 25, warn: 30, danger: 32 })}">${wm.sea_surface_temperature}°C</span></div>`;
+                    html += `<div class="row"><span class="label">${wp.name} Wave </span><span class="val ${getColorClass(wm.wave_height, { watch: 2, warn: 4, danger: 6 })}">${wm.wave_height}m</span></div>`;
+                    heatmapValues.push({ value: wm.sea_surface_temperature, color: getColor(wm.sea_surface_temperature, { watch: 25, warn: 30, danger: 32 }) });
+                    loaded++;
+                }
             }
 
+            // =========================================================================================
             // 5. ЕНЕРГІЯ
+            // =========================================================================================
             html += '<div class="category">ЕНЕРГІЯ</div>';
             const commodities = [
                 { symbol: 'CL=F', name: 'WTI Oil' },
@@ -478,7 +479,7 @@
 
             for (const c of commodities) {
                 if (c.fallback) continue;
-                const dat = await fetchSmart(`https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?range=1d&interval=1d`);
+                const dat = await fetchWithProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?range=1d&interval=1d`);
                 if (dat?.chart?.result?.[0]?.meta?.regularMarketPrice) {
                     const val = dat.chart.result[0].meta.regularMarketPrice;
                     html += `<div class="row"><span class="label">${c.name} </span><span class="val">${val.toFixed(2)} $</span></div>`;
@@ -499,7 +500,7 @@
                 { symbol: 'CT=F', name: 'Cotton' }
             ];
             for (const c of agro) {
-                const dat = await fetchSmart(`https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?range=1d&interval=1d`);
+                const dat = await fetchWithProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?range=1d&interval=1d`);
                 if (dat?.chart?.result?.[0]?.meta?.regularMarketPrice) {
                     const val = dat.chart.result[0].meta.regularMarketPrice;
                     html += `<div class="row"><span class="label">${c.name} </span><span class="val">${val.toFixed(2)}</span></div>`;
@@ -524,7 +525,7 @@
             // 8. ФІНАНСИ & КРИПТА
             html += '<div class="category">ФІНАНСИ & CRYPTO</div>';
             const cryptoIds = 'bitcoin,ethereum,cardano,solana,ripple,litecoin,binancecoin,polkadot,chainlink,dash,monero,dogecoin,shiba-inu,uniswap,avalanche-2,cosmos';
-            const crypto = await fetchSmart(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds}&vs_currencies=usd`);
+            const crypto = await fetchWithProxy(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds}&vs_currencies=usd`);
 
             if (crypto) {
                 const manualOrder = ['bitcoin', 'ethereum', 'solana', 'binancecoin', 'ripple', 'cardano', 'dogecoin', 'avalanche-2', 'shiba-inu', 'polkadot', 'chainlink', 'litecoin', 'uniswap', 'monero', 'cosmos', 'dash'];
@@ -557,7 +558,7 @@
 
             // 9. ВАЛЮТИ
             html += '<div class="category">ВАЛЮТИ</div>';
-            const cbRates = await fetchSmart('https://api.coinbase.com/v2/exchange-rates?currency=USD');
+            const cbRates = await fetchWithProxy('https://api.coinbase.com/v2/exchange-rates?currency=USD');
             if (cbRates?.data?.rates) {
                 const rates = cbRates.data.rates;
                 const currencies = [
