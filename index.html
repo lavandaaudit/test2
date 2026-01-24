@@ -123,7 +123,8 @@
         #heatmap {
             position: absolute;
             top: 80px;
-            right: 210px;
+            right: 240px;
+            /* Moved further left from graphs */
             display: grid;
             grid-template-columns: repeat(8, 14px);
             gap: 2px;
@@ -726,6 +727,50 @@
             ctx.restore();
         }
 
+        function drawStressGrids() {
+            if (canvas.width < 900) return;
+            const w = 180; // Same width as other graphs
+            const mx = canvas.width - w - 20; // Aligned with graphs on the right
+            const my = 500; // Positioned under the Earth Env graph
+            ctx.save(); ctx.translate(mx, my);
+
+            ctx.fillStyle = 'rgba(0,170,255,0.8)'; ctx.font = '10px Courier New';
+            ctx.fillText('SECTOR STRESS INDEX', 0, -10);
+
+            const sectors = [
+                { l: 'GEOSPHERE', v: realData.seismic },
+                { l: 'MAGNETOSPHERE', v: realData.magnetic },
+                { l: 'ATMOSPHERE', v: realData.atmosphere_wind },
+                { l: 'BIOSPHERE', v: earthEnvData.air_quality_aqi / 200 },
+                { l: 'HELIOSPHERE', v: realData.solar_wind },
+                { l: 'STABILITY', v: 1 - realData.chaos }
+            ];
+
+            sectors.forEach((s, i) => {
+                const y = i * 20;
+                const val = Math.max(0.05, Math.min(1, s.v));
+
+                // Label
+                ctx.fillStyle = 'rgba(100,200,255,0.6)'; ctx.font = '8px Courier New';
+                ctx.fillText(s.l, 0, y + 8);
+
+                // Bar Bg
+                ctx.fillStyle = 'rgba(0,40,60,0.4)';
+                ctx.fillRect(0, y + 10, w, 4);
+
+                // Bar Fill
+                const color = s.v > 0.7 ? 'rgba(255,50,50,0.8)' : (s.v > 0.4 ? 'rgba(255,200,50,0.8)' : 'rgba(0,255,150,0.8)');
+                ctx.fillStyle = color;
+                ctx.fillRect(0, y + 10, w * val, 4);
+
+                // Value text
+                ctx.fillStyle = color;
+                ctx.fillText((val * 100).toFixed(0) + '%', w + 5, y + 14);
+            });
+
+            ctx.restore();
+        }
+
         let t = 0;
         function loop() {
             t += 0.016;
@@ -759,6 +804,8 @@
                 ctx.font = '16px Courier New'; ctx.fillText(f.text, f.x + Math.sin(t + f.phase) * 20, f.y + Math.cos(t + f.phase) * 15);
             });
             drawCombinedGrid(); drawSolarGrid(); drawEarthEnvGrid(); drawSystemTopology();
+            drawStressGrids(); // New added grid
+
             const avg = blobs.reduce((s, b) => s + (realData[b.param] || 0.5), 0) / blobs.length;
             blobs.forEach(b => {
                 b.currentSize = lerp(b.currentSize, b.targetSize, 0.04 + chaos * 0.1);
