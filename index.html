@@ -96,14 +96,13 @@
             text-shadow: 0 0 5px #0af;
         }
 
-        /* CODE 2: MAIN DATA LIST (The big list) */
+        /* CODE 2: MAIN DATA LIST */
         #data-main {
             position: absolute;
             top: 80px;
             left: 130px;
-            bottom: 60px;
+            bottom: 20px;
             width: 400px;
-            /* Constrain width so graph (right) is visible */
             font-size: 11px;
             line-height: 1.0;
             letter-spacing: -0.5px;
@@ -116,44 +115,25 @@
             column-gap: 25px;
             row-gap: 0px;
             padding-right: 15px;
-            /* Scrollbar */
             scrollbar-width: thin;
             scrollbar-color: #004466 #001122;
         }
 
-        /* CODE 1: MINI DATA SUMMARY (The small param overview) */
-        /* We keep this but move it slightly or hide it if it duplicates too much. 
-           User said "don't throw out data", so we keep it. We'll put it top-right-ish or float it.
-           Actually, Code 1's text data is less important than visual, but let's keep it available. */
-        #data-summary {
-            position: absolute;
-            top: 50px;
-            right: 250px;
-            font-size: 10px;
-            opacity: 0.6;
-            text-align: right;
-            pointer-events: none;
-            display: none;
-            /* Hiding to avoid clutter as requested "combine", data-main covers it */
-        }
-
-        /* HEATMAP (From Code 2) */
+        /* HEATMAP (Square block near the top graph) */
         #heatmap {
             position: absolute;
-            top: 16px;
-            left: 450px;
-            right: 16px;
-            display: flex;
-            flex-wrap: wrap;
-            height: 20px;
+            top: 80px;
+            right: 210px;
+            display: grid;
+            grid-template-columns: repeat(8, 14px);
             gap: 2px;
             opacity: 0.9;
             pointer-events: none;
         }
 
         .heatcell {
-            width: 10px;
-            height: 10px;
+            width: 14px;
+            height: 14px;
             background: #0f0;
             border: 1px solid #333;
         }
@@ -170,41 +150,22 @@
             line-height: 1.3;
         }
 
-        #system-link {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 22px;
-            color: #0af;
-            opacity: 0.75;
-            cursor: pointer;
-            text-decoration: underline;
-            letter-spacing: 1px;
-            transition: all 0.3s;
-            z-index: 20;
-        }
-
-        #system-link:hover {
-            opacity: 1;
-            color: #0ff;
-            text-shadow: 0 0 12px #0ff;
-        }
-
-        /* DATA STYLING (From Code 2) */
+        /* DATA STYLING */
         .category {
-            margin: 8px 0 2px 0;
+            margin: 8px 0 4px 0;
             font-size: 12px;
             color: #0af;
             font-weight: bold;
             grid-column: span 2;
-            border-bottom: 1px solid #004466;
-            padding-bottom: 1px;
+            border-bottom: 2px solid #004466;
+            padding-bottom: 2px;
+            text-transform: uppercase;
         }
 
         .row {
             white-space: pre;
             opacity: 0.9;
+            margin-bottom: 1px;
         }
 
         .label {
@@ -255,7 +216,7 @@
             }
 
             #data-main {
-                top: 120px;
+                top: 200px;
                 left: 16px;
                 right: 16px;
                 width: auto;
@@ -265,14 +226,12 @@
             }
 
             #heatmap {
-                top: 40px;
+                top: 50px;
                 left: 16px;
+                right: 16px;
+                grid-template-columns: repeat(auto-fill, 14px);
+                /* Responsive on mobile */
                 width: auto;
-            }
-
-            #system-link {
-                bottom: 50px;
-                font-size: 18px;
             }
 
             #hud {
@@ -284,19 +243,16 @@
 
 <body>
 
-    <!-- VISUALIZER CANVAS (From Code 1) -->
     <canvas id="c"></canvas>
 
     <div id="ui-layer">
-        <!-- HEADERS -->
         <div id="hud">GEOMETRIC CHAOS · PLANET CHAOS · ARCHIVE 2026</div>
         <div id="hud-sub">lavanda audit · ibonarium · project 2026</div>
         <div id="status">ініціалізація...</div>
 
-        <!-- HEATMAP (Code 2) -->
+        <!-- HEATMAP AT TOP -->
         <div id="heatmap"></div>
 
-        <!-- NAV (Code 2) -->
         <div id="months-nav" class="interactive">
             <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">JANUARY</a>
             <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">FEBRUARY</a>
@@ -312,18 +268,11 @@
             <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">DECEMBER</a>
         </div>
 
-        <!-- MAIN DATA LIST (Code 2 content will go here) -->
         <div id="data-main" class="interactive"></div>
-
-        <!-- FOOTER -->
-        <div id="system-link" class="interactive">february.2026</div>
         <div id="clock">—</div>
     </div>
 
     <script>
-        // ============================================
-        // 1. INITIALIZATION & HELPERS
-        // ============================================
         const canvas = document.getElementById('c');
         const ctx = canvas.getContext('2d');
         const dataDiv = document.getElementById('data-main');
@@ -351,23 +300,13 @@
 
         const proxy = 'https://corsproxy.io/?';
 
-        // ============================================
-        // 2. DATA STATE (MERGED)
-        // ============================================
-        // 'realData' is used for VISUALS (Code 1 logic) - normalized 0..1
         let realData = { seismic: 0.5, magnetic: 0.5, atmosphere_wind: 0.5, atmosphere_pressure: 0.5, atmosphere_temp: 0.5, ocean: 0.5, solar_radiation: 0.5, solar_wind: 0.5, precipitation: 0.5, chaos: 0.5 };
-
-        // 'graphData' stores raw numbers for the GRAPHS (Code 1 logic)
         let solarIndices = { f107: 120, kp: 2.0, ap: 12, dst: -15, ssn: 85, xray: -6.5, proton: 0.3, electron: 150, bz: -2.5, density: 5.2 };
         let earthEnvData = { air_quality_pm25: 15, air_quality_aqi: 45, co: 0.4, no2: 25, o3: 40, so2: 10, uv_index: 3.5, humidity: 65, cloud_cover: 45, visibility: 12 };
 
-        // Buffers
         let dataHistory = {}; Object.keys(realData).forEach(k => dataHistory[k] = []);
         let heatmapValues = [];
 
-        // ============================================
-        // 3. VISUALS SETUP (Code 1)
-        // ============================================
         const stars = [];
         for (let i = 0; i < 300; i++) stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: Math.random() * 1.2 + 0.4, baseAlpha: Math.random() * 0.4 + 0.25, twinkle: Math.random() * 0.015 + 0.006 });
 
@@ -390,17 +329,14 @@
 
         function lerp(a, b, t) { return a + (b - a) * t; }
 
-        // ============================================
-        // 4. DATA FETCHING (FULL - NO CUTS)
-        // ============================================
         function getColorClass(value, thresholds) {
             if (value === '--' || value === null) return 'val-safe';
             if (!thresholds) return 'val-safe';
-            value = parseFloat(value);
-            if (isNaN(value)) return 'val-safe';
-            if (thresholds.danger !== undefined && value >= thresholds.danger) return 'val-danger';
-            if (thresholds.warn !== undefined && value >= thresholds.warn) return 'val-warn';
-            if (thresholds.watch !== undefined && value >= thresholds.watch) return 'val-watch';
+            let v = parseFloat(value);
+            if (isNaN(v)) return 'val-safe';
+            if (thresholds.danger !== undefined && v >= thresholds.danger) return 'val-danger';
+            if (thresholds.warn !== undefined && v >= thresholds.warn) return 'val-warn';
+            if (thresholds.watch !== undefined && v >= thresholds.watch) return 'val-watch';
             return 'val-safe';
         }
         function getColor(value, thresholds) {
@@ -416,7 +352,9 @@
         function updateHeatmap() {
             heatmapDiv.innerHTML = '';
             heatmapValues.forEach(val => {
-                const cell = document.createElement('div'); cell.className = 'heatcell'; cell.style.background = val.color;
+                const cell = document.createElement('div');
+                cell.className = 'heatcell';
+                cell.style.background = val.color;
                 heatmapDiv.appendChild(cell);
             });
         }
@@ -434,24 +372,22 @@
             statusDiv.innerHTML = 'оновлення джерел...';
             let html = '';
             let loaded = 0;
-            heatmapValues = [];
+            heatmapValues = []; // Clear for new cycle
 
             // --- 1. WEATHER ---
             html += '<div class="category">ПОГОДА (KYIV)</div>';
             const weather = await fetchSmart('https://api.open-meteo.com/v1/forecast?latitude=50.45&longitude=30.52&current=temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m,precipitation,weather_code,is_day,shortwave_radiation,visibility');
             if (weather?.current) {
                 const w = weather.current;
-                // Populating Visualizer Data (Code 1)
                 realData.atmosphere_temp = Math.min(1, Math.max(0, (w.temperature_2m + 40) / 80));
                 realData.atmosphere_wind = Math.min(1, (w.wind_speed_10m || 0) / 80);
                 realData.atmosphere_pressure = Math.min(1, Math.max(0, ((w.pressure_msl || 1013) - 950) / 150));
                 realData.precipitation = Math.min(1, (w.precipitation || 0) / 15);
                 realData.solar_radiation = Math.min(1, (w.shortwave_radiation || 0) / 1200);
                 earthEnvData.humidity = w.relative_humidity_2m || 65;
-                earthEnvData.cloud_cover = 45; // default since simplified url
+                earthEnvData.cloud_cover = 45;
                 earthEnvData.visibility = (w.visibility || 12000) / 1000;
 
-                // Populating Text Data (Code 2)
                 const wMetrics = [
                     { label: 'Temperature', value: w.temperature_2m, thresholds: { watch: 30, warn: 35, danger: 40 }, unit: ' °C' },
                     { label: 'Humidity', value: w.relative_humidity_2m, thresholds: { watch: 80, warn: 90, danger: 95 }, unit: ' %' },
@@ -464,8 +400,6 @@
                     heatmapValues.push({ value: m.value, color: getColor(m.value, m.thresholds) });
                 });
                 loaded += wMetrics.length;
-            } else {
-                html += `<div class="row">No Weather Data</div>`;
             }
 
             // --- 2. AIR ---
@@ -473,7 +407,6 @@
             const air = await fetchSmart('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=50.45&longitude=30.52&current=pm10,pm2_5,carbon_monoxide,ozone,european_aqi,nitrogen_dioxide,sulphur_dioxide,aerosol_optical_depth,dust,uv_index,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen');
             if (air?.current) {
                 const a = air.current;
-                // Visualizer updates
                 earthEnvData.air_quality_pm25 = a.pm2_5 || 15;
                 earthEnvData.co = a.carbon_monoxide ? a.carbon_monoxide / 1000 : 0.4;
                 earthEnvData.no2 = a.nitrogen_dioxide || 25;
@@ -504,7 +437,6 @@
 
             // --- 3. COSMOS ---
             html += '<div class="category">КОСМОС (SOLAR)</div>';
-            // Plasma
             const plasma = await fetchWithProxy('https://services.swpc.noaa.gov/products/solar-wind/plasma-7-day.json');
             if (plasma?.length > 1) {
                 let lastValid = plasma.slice().reverse().find(r => !isNaN(parseFloat(r[3])) && parseFloat(r[3]) > 0);
@@ -512,7 +444,6 @@
                     const speed = parseFloat(lastValid[3]);
                     const den = parseFloat(lastValid[6]);
                     const bz = parseFloat(lastValid[8]);
-                    // Visuals
                     realData.solar_wind = Math.min(1, Math.max(0, (speed - 250) / 750));
                     solarIndices.density = den;
                     solarIndices.bz = bz;
@@ -532,25 +463,19 @@
                 }
             }
 
-            // KP
             const kpData = await fetchWithProxy('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json');
             if (kpData?.length) {
                 const lastKp = parseFloat(kpData[kpData.length - 1][1]) || 0;
-                // Visuals
-                realData.magnetic = Math.min(1, lastKp / 9);
                 solarIndices.kp = lastKp;
-
                 html += `<div class="row"><span class="label">Kp-index </span><span class="val ${getColorClass(lastKp, { watch: 5, warn: 6, danger: 7 })}">${lastKp}</span></div>`;
                 heatmapValues.push({ value: lastKp, color: getColor(lastKp, { watch: 5, warn: 6, danger: 7 }) });
-                // History KP
-                for (let i = 2; i <= 4; i++) { // shortened slightly for space but keeping data
+                for (let i = 2; i <= 4; i++) {
                     let val = parseFloat(kpData[kpData.length - i][1]) || 0;
                     html += `<div class="row"><span class="label">Kp T-${i - 1} </span><span class="val ${getColorClass(val, { watch: 5, warn: 6, danger: 7 })}">${val}</span></div>`;
                     heatmapValues.push({ value: val, color: getColor(val, { watch: 5, warn: 6, danger: 7 }) });
                 }
             }
 
-            // DST
             const dst = await fetchWithProxy('https://services.swpc.noaa.gov/products/kyoto-dst.json');
             if (dst?.length > 0) {
                 const lastDst = parseFloat(dst[dst.length - 1][1]) || 0;
@@ -559,37 +484,30 @@
                 heatmapValues.push({ value: lastDst, color: getColor(-lastDst, { watch: 50, warn: 100, danger: 200 }) });
             }
 
-            // X-RAY
             const xray = await fetchWithProxy('https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json');
             if (xray?.length > 0) {
-                html += `<div class="row"><span class="label">X-ray Flare </span><span class="val">${xray[0].flux ?? '--'} ${xray[0].class_type ?? ''}</span></div>`;
-                solarIndices.xray = Math.log10(xray[0].flux || 1e-8);
-                heatmapValues.push({ value: 0, color: '#ffd700' });
+                const fluxVal = xray[0].flux || 0;
+                html += `<div class="row"><span class="label">X-ray Flare </span><span class="val">${fluxVal} ${xray[0].class_type ?? ''}</span></div>`;
+                heatmapValues.push({ value: fluxVal, color: '#ffd700' });
             }
 
-            // Sunspots
             const sunspots = await fetchWithProxy('https://services.swpc.noaa.gov/json/solar-cycle/predicted-solar-cycle.json');
             if (sunspots && sunspots.length > 0) {
                 const val = sunspots[sunspots.length - 1]['predicted_sunspot_number'];
-                solarIndices.ssn = val;
                 html += `<div class="row"><span class="label">Sunspot Num </span><span class="val">${val}</span></div>`;
                 heatmapValues.push({ value: val, color: '#ffd700' });
             }
 
-            // Proton
             const proton = await fetchWithProxy('https://services.swpc.noaa.gov/json/goes/primary/integral-protons-1-day.json');
             if (proton && proton.length > 0) {
                 const val = parseFloat(proton[proton.length - 1].flux);
-                solarIndices.proton = val;
                 html += `<div class="row"><span class="label">Proton Flux </span><span class="val ${getColorClass(val, { watch: 10, warn: 100, danger: 1000 })}">${val.toExponential(1)}</span></div>`;
                 heatmapValues.push({ value: val, color: getColor(val, { watch: 10, warn: 100, danger: 1000 }) });
             }
 
-            // Electron
             const electron = await fetchWithProxy('https://services.swpc.noaa.gov/json/goes/primary/integral-electrons-1-day.json');
             if (electron && electron.length > 0) {
                 const val = parseFloat(electron[electron.length - 1].flux);
-                solarIndices.electron = val;
                 html += `<div class="row"><span class="label">Electron Flux </span><span class="val ${getColorClass(val, { watch: 1000, warn: 10000, danger: 100000 })}">${val.toExponential(1)}</span></div>`;
                 heatmapValues.push({ value: val, color: getColor(val, { watch: 1000, warn: 10000, danger: 100000 }) });
             }
@@ -597,10 +515,7 @@
             // --- 4. WATER ---
             html += '<div class="category">ВОДА (GLOBAL)</div>';
             const waterPoints = [
-                { name: 'Black Sea', lat: 43.0, lon: 34.0 },
-                { name: 'Mediterranean', lat: 35.0, lon: 18.0 },
-                { name: 'North Atlantic', lat: 45.0, lon: -30.0 },
-                { name: 'Pacific Ocean', lat: 20.0, lon: -155.0 }
+                { name: 'Black Sea', lat: 43.0, lon: 34.0 }, { name: 'Mediterranean', lat: 35.0, lon: 18.0 }, { name: 'North Atlantic', lat: 45.0, lon: -30.0 }, { name: 'Pacific Ocean', lat: 20.0, lon: -155.0 }
             ];
             for (const wp of waterPoints) {
                 const wData = await fetchSmart(`https://marine-api.open-meteo.com/v1/marine?latitude=${wp.lat}&longitude=${wp.lon}&current=wave_height,sea_surface_temperature`);
@@ -615,12 +530,7 @@
             // --- 5. ENERGY ---
             html += '<div class="category">ЕНЕРГІЯ (YAHOO)</div>';
             const commodities = [
-                { symbol: 'CL=F', name: 'WTI Oil' },
-                { symbol: 'BZ=F', name: 'Brent Oil' },
-                { symbol: 'NG=F', name: 'Nat. Gas' },
-                { symbol: 'GC=F', name: 'Gold' },
-                { symbol: 'SI=F', name: 'Silver' },
-                { symbol: 'HG=F', name: 'Copper' }
+                { symbol: 'CL=F', name: 'WTI Oil' }, { symbol: 'BZ=F', name: 'Brent Oil' }, { symbol: 'NG=F', name: 'Nat. Gas' }, { symbol: 'GC=F', name: 'Gold' }, { symbol: 'SI=F', name: 'Silver' }, { symbol: 'HG=F', name: 'Copper' }
             ];
             for (const c of commodities) {
                 const dat = await fetchWithProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?range=1d&interval=1d`);
@@ -635,10 +545,7 @@
             // --- 6. AGRO ---
             html += '<div class="category">АГРО (YAHOO)</div>';
             const agro = [
-                { symbol: 'ZC=F', name: 'Corn' },
-                { symbol: 'ZW=F', name: 'Wheat' },
-                { symbol: 'ZS=F', name: 'Soybean' },
-                { symbol: 'KC=F', name: 'Coffee' }
+                { symbol: 'ZC=F', name: 'Corn' }, { symbol: 'ZW=F', name: 'Wheat' }, { symbol: 'ZS=F', name: 'Soybean' }, { symbol: 'KC=F', name: 'Coffee' }
             ];
             for (const c of agro) {
                 const dat = await fetchWithProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?range=1d&interval=1d`);
@@ -654,12 +561,7 @@
             html += '<div class="category">ЗЕМЛЕТРУСИ (LAST HR)</div>';
             const quakes = await fetchSmart('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson');
             if (quakes?.features) {
-                const feats = quakes.features;
-                // Visuals
-                const maxMag = feats.reduce((m, f) => Math.max(m, f.properties?.mag || 0), 0);
-                realData.seismic = Math.min(1, (feats.length / 30) + (maxMag / 10) * 0.5);
-
-                feats.slice(0, 8).forEach((q) => {
+                quakes.features.slice(0, 8).forEach((q) => {
                     const mag = q.properties.mag || 0;
                     const place = (q.properties.place || 'Unknown').substring(0, 18);
                     html += `<div class="row"><span class="label">M${mag.toFixed(1)} </span><span class="val ${getColorClass(mag, { watch: 4, warn: 5, danger: 6 })}">${place}</span></div>`;
@@ -680,7 +582,9 @@
             }
             const sp500 = await fetchSmart('https://query1.finance.yahoo.com/v8/finance/chart/^GSPC?range=1d&interval=1d');
             if (sp500?.chart?.result?.[0]?.meta?.regularMarketPrice) {
-                html += `<div class="row"><span class="label">S&P 500 </span><span class="val">${sp500.chart.result[0].meta.regularMarketPrice.toFixed(2)}</span></div>`;
+                const val = sp500.chart.result[0].meta.regularMarketPrice;
+                html += `<div class="row"><span class="label">S&P 500 </span><span class="val">${val.toFixed(2)}</span></div>`;
+                heatmapValues.push({ value: val, color: '#0f0' });
             }
 
             // --- 9. CURRENCIES ---
@@ -688,62 +592,43 @@
             const cbRates = await fetchWithProxy('https://api.coinbase.com/v2/exchange-rates?currency=USD');
             if (cbRates?.data?.rates) {
                 const r = cbRates.data.rates;
-                const cList = ['EUR', 'GBP', 'JPY', 'UAH'];
-                cList.forEach(c => {
+                ['EUR', 'GBP', 'JPY', 'UAH'].forEach(c => {
                     const val = parseFloat(r[c]);
                     html += `<div class="row"><span class="label">USD/${c} </span><span class="val">${val.toFixed(2)}</span></div>`;
                     heatmapValues.push({ value: val, color: '#0f0' });
                 });
             }
 
-            // --- CHAOS CALC ---
-            Object.keys(realData).forEach(k => { if (k !== 'chaos') { dataHistory[k].push(realData[k]); if (dataHistory[k].length > 80) dataHistory[k].shift(); } });
-            let vars = [];
-            Object.keys(dataHistory).forEach(k => {
-                if (k === 'chaos') return;
-                const h = dataHistory[k];
-                if (h.length < 2) return;
-                const mean = h.reduce((a, b) => a + b, 0) / h.length;
-                const varnce = h.reduce((a, b) => a + (b - mean) ** 2, 0) / h.length;
-                vars.push(Math.sqrt(varnce));
-            });
-            realData.chaos = vars.length ? Math.min(1, vars.reduce((a, b) => a + b, 0) / vars.length * 10) : 0.5;
-
-            // Render
             dataDiv.innerHTML = html || '<div>немає даних</div>';
             statusDiv.innerHTML = `джерела: ${loaded} • ${new Date().toLocaleTimeString()}`;
             updateHeatmap();
-
-            // Update Visual Params
-            blobs.forEach(b => {
-                const v = realData[b.param] || 0.5;
-                b.targetSize = 4 + v * 14;
-                b.targetAlpha = 0.3 + v * 0.6;
-                b.targetDist = 70 + v * 80;
-            });
         }
 
-        // Initial Fetch
         fetchAllData();
         setInterval(fetchAllData, 60000);
 
-        // ============================================
-        // 5. DRAWING LOOPS (Code 1 Graphs & Visuals)
-        // ============================================
-        // Re-implementing draw logic for the 3 graphs on right side
+        // --- DRAWING FUNCTIONS ---
         function drawCombinedGrid() {
-            if (canvas.width < 900) return; // Hide graphs on small screens to prioritize list
+            if (canvas.width < 900) return;
             const w = 180, h = 100, mx = canvas.width - w - 20, my = 80;
             ctx.save(); ctx.translate(mx, my);
+            ctx.strokeStyle = 'rgba(180,180,180,0.15)'; ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                let y = i * h / 5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+                let x = i * w / 5; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+            }
             ctx.fillStyle = 'rgba(0,255,180,0.8)'; ctx.font = '10px Courier New'; ctx.fillText('MAIN INDICES', 0, -5);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = 'rgba(180,180,180,0.2)'; ctx.strokeRect(0, 0, w, h);
-            const keys = Object.keys(realData);
+            const keys = Object.keys(realData).filter(k => k !== 'chaos');
             ctx.beginPath(); let f = true;
             keys.forEach((k, i) => {
-                if (k === 'chaos') return; const v = realData[k]; const x = i * (w / (keys.length - 1)); const y = h - v * h;
+                const v = realData[k]; const x = i * (w / (keys.length - 1)); const y = h - v * h;
                 f ? ctx.moveTo(x, y) : ctx.lineTo(x, y); f = false;
             });
-            ctx.strokeStyle = 'rgba(0,255,180,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.strokeStyle = 'rgba(0,255,180,0.7)'; ctx.lineWidth = 1.8; ctx.stroke();
+            keys.forEach((k, i) => {
+                const v = realData[k]; const x = i * (w / (keys.length - 1)); const y = h - v * h;
+                ctx.beginPath(); ctx.arc(x, y, 3, 0, 6.28); ctx.fillStyle = 'rgba(0,255,180,0.9)'; ctx.fill();
+            });
             ctx.restore();
         }
 
@@ -751,20 +636,33 @@
             if (canvas.width < 900) return;
             const w = 180, h = 100, mx = canvas.width - w - 20, my = 220;
             ctx.save(); ctx.translate(mx, my);
+            ctx.strokeStyle = 'rgba(255,180,0,0.15)'; ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                let y = i * h / 5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+                let x = i * w / 5; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+            }
             ctx.fillStyle = 'rgba(255,220,80,0.8)'; ctx.font = '10px Courier New'; ctx.fillText('SOLAR INDICES', 0, -5);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = 'rgba(255,180,0,0.3)'; ctx.strokeRect(0, 0, w, h);
             const keys = Object.keys(solarIndices);
             ctx.beginPath(); let f = true;
             keys.forEach((k, i) => {
                 let v = solarIndices[k];
                 if (k === 'f107') v /= 250; else if (k === 'kp') v /= 9; else if (k === 'dst') v = (v + 100) / 200;
                 else if (k === 'proton' || k === 'electron') v = Math.log10(v + 1) / 5;
-                else if (k === 'xray') v = (v + 8) / 6; else v /= 100; // fallback
+                else if (k === 'xray') v = (v + 8) / 6; else v /= 100;
                 v = Math.max(0, Math.min(1, v));
                 const x = i * (w / (keys.length - 1)); const y = h - v * h;
                 f ? ctx.moveTo(x, y) : ctx.lineTo(x, y); f = false;
             });
-            ctx.strokeStyle = 'rgba(255,220,80,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,220,80,0.7)'; ctx.lineWidth = 1.8; ctx.stroke();
+            keys.forEach((k, i) => {
+                let v = solarIndices[k];
+                if (k === 'f107') v /= 250; else if (k === 'kp') v /= 9; else if (k === 'dst') v = (v + 100) / 200;
+                else if (k === 'proton' || k === 'electron') v = Math.log10(v + 1) / 5;
+                else if (k === 'xray') v = (v + 8) / 6; else v /= 100;
+                v = Math.max(0, Math.min(1, v));
+                const x = i * (w / (keys.length - 1)); const y = h - v * h;
+                ctx.beginPath(); ctx.arc(x, y, 3, 0, 6.28); ctx.fillStyle = 'rgba(255,220,80,0.9)'; ctx.fill();
+            });
             ctx.restore();
         }
 
@@ -772,8 +670,12 @@
             if (canvas.width < 900) return;
             const w = 180, h = 100, mx = canvas.width - w - 20, my = 360;
             ctx.save(); ctx.translate(mx, my);
+            ctx.strokeStyle = 'rgba(80,255,220,0.15)'; ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                let y = i * h / 5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+                let x = i * w / 5; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+            }
             ctx.fillStyle = 'rgba(80,255,220,0.8)'; ctx.font = '10px Courier New'; ctx.fillText('EARTH ENV', 0, -5);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = 'rgba(80,255,220,0.3)'; ctx.strokeRect(0, 0, w, h);
             const keys = Object.keys(earthEnvData);
             ctx.beginPath(); let f = true;
             keys.forEach((k, i) => {
@@ -783,139 +685,94 @@
                 const x = i * (w / (keys.length - 1)); const y = h - v * h;
                 f ? ctx.moveTo(x, y) : ctx.lineTo(x, y); f = false;
             });
-            ctx.strokeStyle = 'rgba(80,255,220,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.strokeStyle = 'rgba(80,255,220,0.7)'; ctx.lineWidth = 1.8; ctx.stroke();
+            keys.forEach((k, i) => {
+                let v = earthEnvData[k];
+                if (k.includes('pm')) v /= 100; else if (k.includes('aqi')) v /= 200; else if (k === 'co') v /= 1; else if (k === 'uv') v /= 10; else if (k === 'humidity') v /= 100; else if (k === 'visibility') v /= 30;
+                v = Math.max(0, Math.min(1, v));
+                const x = i * (w / (keys.length - 1)); const y = h - v * h;
+                ctx.beginPath(); ctx.arc(x, y, 3, 0, 6.28); ctx.fillStyle = 'rgba(80,255,220,0.9)'; ctx.fill();
+            });
             ctx.restore();
         }
 
         function drawSystemTopology() {
             const r = Math.min(canvas.width, canvas.height) * 0.16;
-            const cx = canvas.width / 2 + (canvas.width > 900 ? 50 : 0); // Offset slightly if graphs present
+            const cx = canvas.width / 2 + (canvas.width > 900 ? 50 : 0);
             const cy = canvas.height / 2;
-
             ctx.save(); ctx.translate(cx, cy);
             ctx.strokeStyle = 'rgba(0, 180, 255, 0.15)'; ctx.lineWidth = 1;
-            [0.3, 0.6, 1.0].forEach(rr => { ctx.beginPath(); ctx.arc(0, 0, r * rr, 0, Math.PI * 2); ctx.stroke(); });
-
+            [0.3, 0.6, 1.0].forEach(rr => { ctx.beginPath(); ctx.arc(0, 0, r * rr, 0, 6.28); ctx.stroke(); });
             const keys = [{ k: 'seismic', l: 'SEISMIC' }, { k: 'magnetic', l: 'MAGNETIC' }, { k: 'solar_wind', l: 'SOL.WIND' }, { k: 'atmosphere_temp', l: 'TEMP' }, { k: 'air_quality_aqi', l: 'AQI', src: earthEnvData, max: 200 }, { k: 'precipitation', l: 'RAIN' }, { k: 'chaos', l: 'CHAOS' }, { k: 'solar_radiation', l: 'SOL.RAD' }];
             const step = 6.28 / keys.length;
-
             ctx.beginPath();
-            keys.forEach((d, i) => {
-                let v = (d.src ? d.src[d.k] : realData[d.k]) || 0;
-                if (d.max) v /= d.max;
-                v = Math.max(0.1, Math.min(1, v));
-                const rr = (v + Math.sin(t * 2 + i) * 0.05 * realData.chaos) * r;
-                const a = i * step - 1.57;
-                const x = Math.cos(a) * rr; const y = Math.sin(a) * rr;
-                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-            });
-            ctx.closePath();
-            ctx.fillStyle = 'rgba(255, 100, 50, 0.15)'; ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 100, 50, 0.8)'; ctx.lineWidth = 2; ctx.stroke();
-
-            // Labels & Dots
             keys.forEach((d, i) => {
                 let v = (d.src ? d.src[d.k] : realData[d.k]) || 0; if (d.max) v /= d.max; v = Math.max(0.1, Math.min(1, v));
                 const rr = (v + Math.sin(t * 2 + i) * 0.05 * realData.chaos) * r;
-                const a = i * step - 1.57;
-                const x = Math.cos(a) * rr; const y = Math.sin(a) * rr;
+                const a = i * step - 1.57; const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            });
+            ctx.closePath(); ctx.fillStyle = 'rgba(255, 100, 50, 0.15)'; ctx.fill(); ctx.strokeStyle = 'rgba(255, 100, 50, 0.8)'; ctx.lineWidth = 2; ctx.stroke();
+            keys.forEach((d, i) => {
+                let v = (d.src ? d.src[d.k] : realData[d.k]) || 0; if (d.max) v /= d.max; v = Math.max(0.1, Math.min(1, v));
+                const rr = (v + Math.sin(t * 2 + i) * 0.05 * realData.chaos) * r;
+                const a = i * step - 1.57; const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
                 ctx.beginPath(); ctx.arc(x, y, 3, 0, 6.28); ctx.fillStyle = '#fff'; ctx.fill();
-
-                if (canvas.width > 500) {
-                    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); ctx.stroke();
-                    ctx.fillStyle = 'rgba(0, 200, 255, 0.8)'; ctx.font = '9px Courier New';
-                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                if (canvas.width > 550) {
+                    ctx.fillStyle = 'rgba(0, 200, 255, 0.8)'; ctx.font = '9px Courier New'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.fillText(d.l, Math.cos(a) * (r + 20), Math.sin(a) * (r + 20));
                 }
             });
-
-            ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '10px Courier New';
-            ctx.textAlign = 'center'; ctx.fillText('TOPOLOGY', 0, 5);
             ctx.restore();
         }
 
-        // ============================================
-        // 6. MAIN LOOP
-        // ============================================
         let t = 0;
         function loop() {
             t += 0.016;
-            ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0, 0, canvas.width, canvas.height); // Trails
-
-            const chaos = realData.chaos;
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-
-            // Stars
-            const starMod = 1 - chaos * 0.3;
+            ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const chaos = realData.chaos, cx = canvas.width / 2, cy = canvas.height / 2;
             stars.forEach(s => {
-                const tw = Math.sin(t * s.twinkle * 12 + s.x * 0.008) * 0.18 * starMod;
+                const tw = Math.sin(t * s.twinkle * 12 + s.x * 0.008) * 0.18 * (1 - chaos * 0.3);
                 ctx.fillStyle = `rgba(220,235,255,${Math.max(0.08, s.baseAlpha + tw).toFixed(3)})`;
                 ctx.fillRect(s.x, s.y, s.size, s.size);
             });
-
-            // Grid (Code 1 Style)
             if (t % 3 < 2.9) {
-                ctx.strokeStyle = 'rgba(180,100,255,0.03)'; ctx.lineWidth = 1;
-                const spacing = 40;
-                for (let gx = 0; gx < canvas.width; gx += spacing) {
+                ctx.strokeStyle = 'rgba(180,100,255,0.03)';
+                for (let gx = 0; gx < canvas.width; gx += 40) {
                     ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke();
                 }
             }
-
-            // Central Solar Rings (Code 1)
             for (let s = 0; s < 4; s++) {
                 ctx.beginPath();
                 for (let i = 0; i < 90; i++) {
                     const angle = i * 0.2 + t * 0.5 + s;
                     const radius = i * 0.5 + 25 * Math.sin(t * 0.5 + i * 0.3) + realData.solar_radiation * 20;
-                    const x = cx + Math.cos(angle + s) * radius;
-                    const y = cy + Math.sin(angle + s) * radius;
+                    const x = cx + Math.cos(angle + s) * radius, y = cy + Math.sin(angle + s) * radius;
                     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
                 }
                 ctx.strokeStyle = `rgba(255,${100 + s * 40},${50 + s * 30},${0.05 + realData.solar_wind * 0.15})`;
                 ctx.lineWidth = 1 + s * 0.5; ctx.stroke();
             }
-
-            // Floating Formulas
             formulaObjs.forEach(f => {
                 f.alpha = Math.sin(t * 0.5 + f.phase) * 0.5 + 0.5;
                 ctx.fillStyle = `rgba(180,255,200,${f.alpha * 0.25})`;
-                ctx.font = '16px Courier New';
-                ctx.fillText(f.text, f.x + Math.sin(t + f.phase) * 20, f.y + Math.cos(t + f.phase) * 15);
+                ctx.font = '16px Courier New'; ctx.fillText(f.text, f.x + Math.sin(t + f.phase) * 20, f.y + Math.cos(t + f.phase) * 15);
             });
-
-            // Draw Graphs & Topology
-            drawCombinedGrid();
-            drawSolarGrid();
-            drawEarthEnvGrid();
-            drawSystemTopology();
-
-            // Blobs
+            drawCombinedGrid(); drawSolarGrid(); drawEarthEnvGrid(); drawSystemTopology();
             const avg = blobs.reduce((s, b) => s + (realData[b.param] || 0.5), 0) / blobs.length;
             blobs.forEach(b => {
-                b.currentSize = lerp(b.currentSize, b.targetSize, 0.04 + chaos * 0.10);
+                b.currentSize = lerp(b.currentSize, b.targetSize, 0.04 + chaos * 0.1);
                 b.currentAlpha = lerp(b.currentAlpha, b.targetAlpha, 0.05 + chaos * 0.12);
                 b.currentDist = lerp(b.currentDist, b.radius + (realData[b.param] || 0) * 40, 0.04 + chaos * 0.08);
                 const pulse = Math.sin(t * 0.7 + b.phase) * 0.15;
                 b.angle += (0.006 + avg * 0.02) * (1 + pulse * 0.3);
-
-                const x = cx + Math.cos(b.angle) * b.currentDist;
-                const y = cy + Math.sin(b.angle) * b.currentDist;
+                const x = cx + Math.cos(b.angle) * b.currentDist, y = cy + Math.sin(b.angle) * b.currentDist;
                 ctx.fillStyle = b.color + b.currentAlpha.toFixed(2) + ')';
-                ctx.beginPath(); ctx.arc(x, y, b.currentSize * (1 + pulse), 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x, y, b.currentSize * (1 + pulse), 0, 6.28); ctx.fill();
             });
-
             requestAnimationFrame(loop);
         }
         loop();
-
-        // System Link Click
-        document.getElementById('system-link').addEventListener('click', () => {
-            window.open('https://lavandaaudit.github.io/indicator-100-live-/', '_blank', 'noopener,noreferrer');
-        });
-
     </script>
 </body>
 
