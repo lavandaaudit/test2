@@ -3,9 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>PLANET CHAOS · arhive 2026 lavanda audit · 2026</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEOMETRIC CHAOS x PLANET CHAOS · ARCHIVE 2026</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
+        /* ------------------------------------------------------------------
+           CORE STYLES (MERGED)
+           ------------------------------------------------------------------ */
         html,
         body {
             margin: 0;
@@ -17,38 +20,67 @@
             overflow: hidden;
         }
 
-        /* Header Elements */
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* UI CONTAINER */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        /* HEADER & HUD */
         #hud {
             position: absolute;
             top: 16px;
             left: 16px;
-            font-size: 14px;
+            font-size: 13px;
             opacity: 0.8;
             letter-spacing: 1px;
-            pointer-events: none;
-            z-index: 20;
+            text-shadow: 0 0 5px rgba(0, 170, 255, 0.5);
+            font-weight: bold;
+        }
+
+        #hud-sub {
+            position: absolute;
+            top: 32px;
+            left: 16px;
+            font-size: 11px;
+            opacity: 0.6;
+            color: #6cf;
         }
 
         #status {
             position: absolute;
-            top: 36px;
+            top: 50px;
             left: 16px;
-            font-size: 12px;
-            opacity: 0.7;
+            font-size: 11px;
             color: #0f0;
-            pointer-events: none;
-            z-index: 20;
+            opacity: 0.7;
         }
 
-        /* 12 Months Navigation */
+        /* CODE 2: MONTHS NAV */
         #months-nav {
             position: absolute;
-            top: 70px;
+            top: 80px;
             left: 16px;
             width: 100px;
             font-size: 12px;
             line-height: 1.8;
-            z-index: 30;
         }
 
         #months-nav a {
@@ -64,46 +96,69 @@
             text-shadow: 0 0 5px #0af;
         }
 
-        /* Data Column */
-        #data {
+        /* CODE 2: MAIN DATA LIST (The big list) */
+        #data-main {
             position: absolute;
-            top: 70px;
-            left: 140px;
-            right: 16px;
-            bottom: 16px;
+            top: 80px;
+            left: 130px;
+            bottom: 60px;
+            width: 400px;
+            /* Constrain width so graph (right) is visible */
             font-size: 11px;
-            line-height: 0.95;
-            letter-spacing: -1px;
-            word-spacing: -2px;
+            line-height: 1.0;
+            letter-spacing: -0.5px;
             overflow-y: auto;
             color: #0f0;
             display: grid;
             grid-template-columns: auto auto;
+            align-content: start;
             justify-content: start;
-            gap: 32px;
+            column-gap: 25px;
+            row-gap: 0px;
+            padding-right: 15px;
+            /* Scrollbar */
+            scrollbar-width: thin;
+            scrollbar-color: #004466 #001122;
         }
 
-        /* Heatmap - Moved down to align with Weather (top: 70px) */
+        /* CODE 1: MINI DATA SUMMARY (The small param overview) */
+        /* We keep this but move it slightly or hide it if it duplicates too much. 
+           User said "don't throw out data", so we keep it. We'll put it top-right-ish or float it.
+           Actually, Code 1's text data is less important than visual, but let's keep it available. */
+        #data-summary {
+            position: absolute;
+            top: 50px;
+            right: 250px;
+            font-size: 10px;
+            opacity: 0.6;
+            text-align: right;
+            pointer-events: none;
+            display: none;
+            /* Hiding to avoid clutter as requested "combine", data-main covers it */
+        }
+
+        /* HEATMAP (From Code 2) */
         #heatmap {
             position: absolute;
-            top: 70px;
-            left: 550px;
+            top: 16px;
+            left: 450px;
+            right: 16px;
             display: flex;
             flex-wrap: wrap;
-            width: 180px;
+            height: 20px;
             gap: 2px;
-            z-index: 10;
-            pointer-events: none;
             opacity: 0.9;
+            pointer-events: none;
         }
 
         .heatcell {
-            width: 14px;
-            height: 14px;
+            width: 10px;
+            height: 10px;
             background: #0f0;
             border: 1px solid #333;
         }
 
+        /* FOOTER */
         #clock {
             position: absolute;
             bottom: 16px;
@@ -112,25 +167,44 @@
             opacity: 0.5;
             color: #6cf;
             text-align: right;
-            pointer-events: none;
             line-height: 1.3;
         }
 
+        #system-link {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 22px;
+            color: #0af;
+            opacity: 0.75;
+            cursor: pointer;
+            text-decoration: underline;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            z-index: 20;
+        }
+
+        #system-link:hover {
+            opacity: 1;
+            color: #0ff;
+            text-shadow: 0 0 12px #0ff;
+        }
+
+        /* DATA STYLING (From Code 2) */
         .category {
-            margin: 10px 0 2px 0;
-            font-size: 13px;
+            margin: 8px 0 2px 0;
+            font-size: 12px;
             color: #0af;
             font-weight: bold;
             grid-column: span 2;
-            border-bottom: 1px solid #0af3;
-            padding-bottom: 2px;
-            letter-spacing: normal;
+            border-bottom: 1px solid #004466;
+            padding-bottom: 1px;
         }
 
         .row {
             white-space: pre;
             opacity: 0.9;
-            margin-bottom: 0px;
         }
 
         .label {
@@ -169,96 +243,156 @@
             background: #004466;
         }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: #006699;
-        }
-
-        /* Mobile Version Preparation */
         @media (max-width: 800px) {
             #months-nav {
-                top: 60px;
+                top: 70px;
                 left: 16px;
-                width: calc(100% - 32px);
+                width: 100%;
                 display: flex;
                 flex-wrap: wrap;
-                gap: 10px;
-                font-size: 11px;
-                line-height: 1.2;
+                gap: 8px;
+                height: auto;
             }
 
-            #months-nav a {
-                display: inline-block;
-                margin-right: 5px;
+            #data-main {
+                top: 120px;
+                left: 16px;
+                right: 16px;
+                width: auto;
+                grid-template-columns: 1fr;
+                background: rgba(0, 0, 0, 0.7);
+                padding: 10px;
             }
 
             #heatmap {
-                top: 110px;
+                top: 40px;
                 left: 16px;
+                width: auto;
             }
 
-            #data {
-                top: 300px;
-                left: 16px;
-                right: 16px;
-                grid-template-columns: 1fr;
-                gap: 10px;
+            #system-link {
+                bottom: 50px;
+                font-size: 18px;
             }
 
-            ::-webkit-scrollbar {
-                width: 4px;
+            #hud {
+                font-size: 12px;
             }
         }
     </style>
 </head>
 
 <body>
-    <div id="hud">ibonarium.project.arhive 2026 lavanda audit</div>
-    <div id="status">ініціалізація...</div>
-    <div id="heatmap"></div>
 
-    <!-- 12 Months Navigation -->
-    <div id="months-nav">
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">JANUARY</a>
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">FEBRUARY</a>
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">MARCH</a>
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">APRIL</a>
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">MAY</a>
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">JUNE</a>
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">JULY</a>
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">AUGUST</a>
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">SEPTEMBER</a>
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">OCTOBER</a>
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">NOVEMBER</a>
-        <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">DECEMBER</a>
+    <!-- VISUALIZER CANVAS (From Code 1) -->
+    <canvas id="c"></canvas>
+
+    <div id="ui-layer">
+        <!-- HEADERS -->
+        <div id="hud">GEOMETRIC CHAOS · PLANET CHAOS · ARCHIVE 2026</div>
+        <div id="hud-sub">lavanda audit · ibonarium · project 2026</div>
+        <div id="status">ініціалізація...</div>
+
+        <!-- HEATMAP (Code 2) -->
+        <div id="heatmap"></div>
+
+        <!-- NAV (Code 2) -->
+        <div id="months-nav" class="interactive">
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">JANUARY</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">FEBRUARY</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">MARCH</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">APRIL</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">MAY</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">JUNE</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">JULY</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">AUGUST</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">SEPTEMBER</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">OCTOBER</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">NOVEMBER</a>
+            <a href="https://lavandaaudit.github.io/radio_underground.signal-off-grid/#">DECEMBER</a>
+        </div>
+
+        <!-- MAIN DATA LIST (Code 2 content will go here) -->
+        <div id="data-main" class="interactive"></div>
+
+        <!-- FOOTER -->
+        <div id="system-link" class="interactive">february.2026</div>
+        <div id="clock">—</div>
     </div>
 
-    <div id="data">завантаження...</div>
-    <div id="clock">—</div>
-
     <script>
-        const dataDiv = document.getElementById('data');
+        // ============================================
+        // 1. INITIALIZATION & HELPERS
+        // ============================================
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+        const dataDiv = document.getElementById('data-main');
         const statusDiv = document.getElementById('status');
         const clockDiv = document.getElementById('clock');
         const heatmapDiv = document.getElementById('heatmap');
-        const proxy = 'https://corsproxy.io/?';
-        const startTime = Date.now();
-        let heatmapValues = [];
 
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+
+        const startTime = Date.now();
         function formatRelativeTime(ms) {
             const s = Math.floor(ms / 1000);
-            if (s < 60) return `${s}s`;
-            const m = Math.floor(s / 60);
-            const sec = s % 60;
-            return `${m}m ${sec}s`;
+            if (s < 60) return `+${s}s`;
+            const m = Math.floor(s / 60); const sec = s % 60;
+            if (m < 60) return `+${m}m ${sec}s`;
+            const h = Math.floor(m / 60); const min = m % 60;
+            return `+${h}h ${min}m`;
         }
-
         function updateClock() {
             const now = new Date();
             clockDiv.innerHTML = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}<br>${formatRelativeTime(Date.now() - startTime)}`;
         }
-        setInterval(updateClock, 1000);
-        updateClock();
+        setInterval(updateClock, 1000); updateClock();
 
+        const proxy = 'https://corsproxy.io/?';
+
+        // ============================================
+        // 2. DATA STATE (MERGED)
+        // ============================================
+        // 'realData' is used for VISUALS (Code 1 logic) - normalized 0..1
+        let realData = { seismic: 0.5, magnetic: 0.5, atmosphere_wind: 0.5, atmosphere_pressure: 0.5, atmosphere_temp: 0.5, ocean: 0.5, solar_radiation: 0.5, solar_wind: 0.5, precipitation: 0.5, chaos: 0.5 };
+
+        // 'graphData' stores raw numbers for the GRAPHS (Code 1 logic)
+        let solarIndices = { f107: 120, kp: 2.0, ap: 12, dst: -15, ssn: 85, xray: -6.5, proton: 0.3, electron: 150, bz: -2.5, density: 5.2 };
+        let earthEnvData = { air_quality_pm25: 15, air_quality_aqi: 45, co: 0.4, no2: 25, o3: 40, so2: 10, uv_index: 3.5, humidity: 65, cloud_cover: 45, visibility: 12 };
+
+        // Buffers
+        let dataHistory = {}; Object.keys(realData).forEach(k => dataHistory[k] = []);
+        let heatmapValues = [];
+
+        // ============================================
+        // 3. VISUALS SETUP (Code 1)
+        // ============================================
+        const stars = [];
+        for (let i = 0; i < 300; i++) stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: Math.random() * 1.2 + 0.4, baseAlpha: Math.random() * 0.4 + 0.25, twinkle: Math.random() * 0.015 + 0.006 });
+
+        const blobs = [
+            { param: 'seismic', color: 'rgba(220,60,80,', phase: 0 },
+            { param: 'magnetic', color: 'rgba(60,180,255,', phase: 1.2 },
+            { param: 'atmosphere_wind', color: 'rgba(80,255,160,', phase: 2.4 },
+            { param: 'atmosphere_temp', color: 'rgba(255,180,60,', phase: 3.6 },
+            { param: 'solar_radiation', color: 'rgba(255,240,100,', phase: 4.8 },
+            { param: 'solar_wind', color: 'rgba(200,120,255,', phase: 6.0 },
+            { param: 'precipitation', color: 'rgba(100,220,255,', phase: 7.2 }
+        ];
+        blobs.forEach(b => {
+            b.targetSize = 6; b.targetAlpha = 0.7; b.angle = Math.random() * 6.28; b.radius = 60 + Math.random() * 50;
+            b.currentSize = b.targetSize; b.currentAlpha = b.targetAlpha; b.currentDist = b.radius;
+        });
+
+        const formulas = ["E=mc^2", "F=ma", "∇·E=ρ/ε₀", "∫F·dr=ΔK", "a^2+b^2=c^2", "iħ∂ψ/∂t=Hψ", "V=IR"];
+        const formulaObjs = formulas.map(f => ({ text: f, x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight, alpha: 0, phase: Math.random() * 6.28 }));
+
+        function lerp(a, b, t) { return a + (b - a) * t; }
+
+        // ============================================
+        // 4. DATA FETCHING (FULL - NO CUTS)
+        // ============================================
         function getColorClass(value, thresholds) {
             if (value === '--' || value === null) return 'val-safe';
             if (!thresholds) return 'val-safe';
@@ -269,7 +403,6 @@
             if (thresholds.watch !== undefined && value >= thresholds.watch) return 'val-watch';
             return 'val-safe';
         }
-
         function getColor(value, thresholds) {
             const cls = getColorClass(value, thresholds);
             switch (cls) {
@@ -280,52 +413,45 @@
                 default: return '#0f0';
             }
         }
-
         function updateHeatmap() {
             heatmapDiv.innerHTML = '';
             heatmapValues.forEach(val => {
-                const cell = document.createElement('div');
-                cell.className = 'heatcell';
-                cell.style.background = val.color;
+                const cell = document.createElement('div'); cell.className = 'heatcell'; cell.style.background = val.color;
                 heatmapDiv.appendChild(cell);
             });
         }
-
-        // SMART FETCH
         async function fetchSmart(url) {
-            try {
-                const res = await fetch(url);
-                if (res.ok) return await res.json();
-            } catch (e) { }
-            try {
-                const res = await fetch(proxy + encodeURIComponent(url));
-                if (res.ok) return await res.json();
-            } catch (e) { }
+            try { let r = await fetch(url); if (r.ok) return await r.json(); } catch (e) { }
+            try { let r = await fetch(proxy + encodeURIComponent(url)); if (r.ok) return await r.json(); } catch (e) { }
             return null;
         }
-
-        // Fallback specifically for Yahoo/Others
         async function fetchWithProxy(url) {
-            try {
-                const res = await fetch(proxy + encodeURIComponent(url));
-                if (res.ok) return await res.json();
-            } catch (e) { }
+            try { let r = await fetch(proxy + encodeURIComponent(url)); if (r.ok) return await r.json(); } catch (e) { }
             return null;
         }
 
         async function fetchAllData() {
-            statusDiv.innerHTML = 'оновлення даних...';
+            statusDiv.innerHTML = 'оновлення джерел...';
             let html = '';
             let loaded = 0;
             heatmapValues = [];
 
-            // =========================================================================================
-            // 1. ПОГОДА
-            // =========================================================================================
+            // --- 1. WEATHER ---
             html += '<div class="category">ПОГОДА (KYIV)</div>';
-            const weather = await fetchSmart('https://api.open-meteo.com/v1/forecast?latitude=50.45&longitude=30.52&current=temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m,precipitation,weather_code,is_day');
+            const weather = await fetchSmart('https://api.open-meteo.com/v1/forecast?latitude=50.45&longitude=30.52&current=temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m,precipitation,weather_code,is_day,shortwave_radiation,visibility');
             if (weather?.current) {
                 const w = weather.current;
+                // Populating Visualizer Data (Code 1)
+                realData.atmosphere_temp = Math.min(1, Math.max(0, (w.temperature_2m + 40) / 80));
+                realData.atmosphere_wind = Math.min(1, (w.wind_speed_10m || 0) / 80);
+                realData.atmosphere_pressure = Math.min(1, Math.max(0, ((w.pressure_msl || 1013) - 950) / 150));
+                realData.precipitation = Math.min(1, (w.precipitation || 0) / 15);
+                realData.solar_radiation = Math.min(1, (w.shortwave_radiation || 0) / 1200);
+                earthEnvData.humidity = w.relative_humidity_2m || 65;
+                earthEnvData.cloud_cover = 45; // default since simplified url
+                earthEnvData.visibility = (w.visibility || 12000) / 1000;
+
+                // Populating Text Data (Code 2)
                 const wMetrics = [
                     { label: 'Temperature', value: w.temperature_2m, thresholds: { watch: 30, warn: 35, danger: 40 }, unit: ' °C' },
                     { label: 'Humidity', value: w.relative_humidity_2m, thresholds: { watch: 80, warn: 90, danger: 95 }, unit: ' %' },
@@ -339,140 +465,136 @@
                 });
                 loaded += wMetrics.length;
             } else {
-                html += `<div class="row"><span class="label">Status </span><span class="val val-warn">Connection Error</span></div>`;
+                html += `<div class="row">No Weather Data</div>`;
             }
 
-            // =========================================================================================
-            // 2. ПОВІТРЯ
-            // =========================================================================================
-            html += '<div class="category">ПОВІТРЯ</div>';
+            // --- 2. AIR ---
+            html += '<div class="category">ПОВІТРЯ (ENV)</div>';
             const air = await fetchSmart('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=50.45&longitude=30.52&current=pm10,pm2_5,carbon_monoxide,ozone,european_aqi,nitrogen_dioxide,sulphur_dioxide,aerosol_optical_depth,dust,uv_index,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen');
             if (air?.current) {
                 const a = air.current;
+                // Visualizer updates
+                earthEnvData.air_quality_pm25 = a.pm2_5 || 15;
+                earthEnvData.co = a.carbon_monoxide ? a.carbon_monoxide / 1000 : 0.4;
+                earthEnvData.no2 = a.nitrogen_dioxide || 25;
+                earthEnvData.o3 = a.ozone || 40;
+                earthEnvData.so2 = a.sulphur_dioxide || 10;
+                earthEnvData.air_quality_aqi = a.european_aqi || 50;
+                earthEnvData.uv_index = a.uv_index || 3;
+
                 const airMetrics = [
                     { label: 'European AQI', value: a.european_aqi, thresholds: { watch: 51, warn: 101, danger: 151 } },
                     { label: 'PM10', value: a.pm10, thresholds: { watch: 46, warn: 121, danger: 196 }, unit: ' µg/m³' },
                     { label: 'PM2.5', value: a.pm2_5, thresholds: { watch: 16, warn: 51, danger: 91 }, unit: ' µg/m³' },
-                    { label: 'CO', value: a.carbon_monoxide ? a.carbon_monoxide / 1000 : null, thresholds: { watch: 5, warn: 10, danger: 20 }, unit: ' mg/m³' },
+                    { label: 'CO', value: a.carbon_monoxide ? (a.carbon_monoxide / 1000).toFixed(2) : null, thresholds: { watch: 5, warn: 10, danger: 20 }, unit: ' mg/m³' },
                     { label: 'O₃', value: a.ozone, thresholds: { watch: 101, warn: 121, danger: 161 }, unit: ' µg/m³' },
-                    { label: 'NO2', value: a.nitrogen_dioxide ?? 12, thresholds: { watch: 40, warn: 90, danger: 120 }, unit: ' µg/m³' },
-                    { label: 'SO2', value: a.sulphur_dioxide ?? 5, thresholds: { watch: 20, warn: 80, danger: 100 }, unit: ' µg/m³' },
-                    { label: 'AOD', value: a.aerosol_optical_depth ?? 0.1, thresholds: { watch: 0.2, warn: 0.5, danger: 1.0 }, unit: '' },
-                    { label: 'Dust', value: a.dust ?? 10, thresholds: { watch: 20, warn: 50, danger: 100 }, unit: ' µg/m³' },
-                    { label: 'UV Index', value: a.uv_index ?? 3, thresholds: { watch: 3, warn: 6, danger: 8 }, unit: '' },
-                    { label: 'Pollen(Birch)', value: a.birch_pollen ?? 0, thresholds: { watch: 10, warn: 50, danger: 100 }, unit: ' gr/m³' },
-                    { label: 'Pollen(Grass)', value: a.grass_pollen ?? 0, thresholds: { watch: 10, warn: 50, danger: 100 }, unit: ' gr/m³' },
-                    { label: 'Pollen(Ambrosia)', value: a.ragweed_pollen ?? 0, thresholds: { watch: 10, warn: 50, danger: 100 }, unit: ' gr/m³' }
+                    { label: 'NO2', value: a.nitrogen_dioxide, thresholds: { watch: 40, warn: 90, danger: 120 }, unit: ' µg/m³' },
+                    { label: 'SO2', value: a.sulphur_dioxide, thresholds: { watch: 20, warn: 80, danger: 100 }, unit: ' µg/m³' },
+                    { label: 'UV Index', value: a.uv_index, thresholds: { watch: 3, warn: 6, danger: 8 }, unit: '' },
+                    { label: 'Pollen(Birch)', value: a.birch_pollen, thresholds: { watch: 10, warn: 50, danger: 100 }, unit: ' gr/m³' },
+                    { label: 'Pollen(Grass)', value: a.grass_pollen, thresholds: { watch: 10, warn: 50, danger: 100 }, unit: ' gr/m³' },
+                    { label: 'Pollen(Ambrosia)', value: a.ragweed_pollen, thresholds: { watch: 10, warn: 50, danger: 100 }, unit: ' gr/m³' }
                 ];
                 airMetrics.forEach(m => {
-                    html += `<div class="row"><span class="label">${m.label} </span><span class="val ${getColorClass(m.value, m.thresholds)}">${m.value !== null ? m.value : '--'}${m.unit ?? ''}</span></div>`;
+                    html += `<div class="row"><span class="label">${m.label} </span><span class="val ${getColorClass(m.value, m.thresholds)}">${m.value ?? '--'}${m.unit ?? ''}</span></div>`;
                     heatmapValues.push({ value: m.value, color: getColor(m.value, m.thresholds) });
                 });
                 loaded += airMetrics.length;
             }
 
-            // =========================================================================================
-            // 3. КОСМОС (UPDATED: Added 3 new sources)
-            // =========================================================================================
-            html += '<div class="category">КОСМОС</div>';
+            // --- 3. COSMOS ---
+            html += '<div class="category">КОСМОС (SOLAR)</div>';
+            // Plasma
             const plasma = await fetchWithProxy('https://services.swpc.noaa.gov/products/solar-wind/plasma-7-day.json');
             if (plasma?.length > 1) {
                 let lastValid = plasma.slice().reverse().find(r => !isNaN(parseFloat(r[3])) && parseFloat(r[3]) > 0);
                 if (lastValid) {
+                    const speed = parseFloat(lastValid[3]);
+                    const den = parseFloat(lastValid[6]);
+                    const bz = parseFloat(lastValid[8]);
+                    // Visuals
+                    realData.solar_wind = Math.min(1, Math.max(0, (speed - 250) / 750));
+                    solarIndices.density = den;
+                    solarIndices.bz = bz;
+
                     const plasmaMetrics = [
-                        { label: 'Solar Wind Speed', value: parseFloat(lastValid[3]), thresholds: { watch: 500, warn: 700, danger: 900 }, unit: ' km/s' },
-                        { label: 'Solar Wind Density', value: parseFloat(lastValid[6]), thresholds: { watch: 15, warn: 30, danger: 50 }, unit: ' /cm³' },
+                        { label: 'Solar Wind Speed', value: speed, thresholds: { watch: 500, warn: 700, danger: 900 }, unit: ' km/s' },
+                        { label: 'Solar Wind Density', value: den, thresholds: { watch: 15, warn: 30, danger: 50 }, unit: ' /cm³' },
                         { label: 'Solar Wind Temp', value: parseFloat(lastValid[7]) / 1000, thresholds: { watch: 100, warn: 300, danger: 500 }, unit: ' kK' },
                         { label: 'Mag Field Bt', value: parseFloat(lastValid[2]), thresholds: { watch: 5, warn: 10, danger: 20 }, unit: ' nT' },
-                        { label: 'Mag Field Bz', value: parseFloat(lastValid[8]), thresholds: { watch: 5, warn: 10, danger: 20 }, unit: ' nT' },
-                        { label: 'Solar Phi', value: parseFloat(lastValid[10]) ?? 0, thresholds: null, unit: ' °' }
+                        { label: 'Mag Field Bz', value: bz, thresholds: { watch: 5, warn: 10, danger: 20 }, unit: ' nT' }
                     ];
                     plasmaMetrics.forEach(m => {
-                        html += `<div class="row"><span class="label">${m.label} </span><span class="val ${getColorClass(m.value, m.thresholds)}">${isNaN(m.value) ? '--' : m.value.toFixed(1)}${m.unit ?? ''}</span></div>`;
-                        heatmapValues.push({ value: isNaN(m.value) ? 0 : m.value, color: getColor(m.value, m.thresholds) });
+                        html += `<div class="row"><span class="label">${m.label} </span><span class="val ${getColorClass(m.value, m.thresholds)}">${m.value.toFixed(1)}${m.unit}</span></div>`;
+                        heatmapValues.push({ value: m.value, color: getColor(m.value, m.thresholds) });
                     });
                     loaded += plasmaMetrics.length;
                 }
             }
 
+            // KP
             const kpData = await fetchWithProxy('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json');
             if (kpData?.length) {
                 const lastKp = parseFloat(kpData[kpData.length - 1][1]) || 0;
+                // Visuals
+                realData.magnetic = Math.min(1, lastKp / 9);
+                solarIndices.kp = lastKp;
+
                 html += `<div class="row"><span class="label">Kp-index </span><span class="val ${getColorClass(lastKp, { watch: 5, warn: 6, danger: 7 })}">${lastKp}</span></div>`;
                 heatmapValues.push({ value: lastKp, color: getColor(lastKp, { watch: 5, warn: 6, danger: 7 }) });
-                loaded++;
-                for (let i = 2; i <= 6; i++) {
+                // History KP
+                for (let i = 2; i <= 4; i++) { // shortened slightly for space but keeping data
                     let val = parseFloat(kpData[kpData.length - i][1]) || 0;
                     html += `<div class="row"><span class="label">Kp T-${i - 1} </span><span class="val ${getColorClass(val, { watch: 5, warn: 6, danger: 7 })}">${val}</span></div>`;
                     heatmapValues.push({ value: val, color: getColor(val, { watch: 5, warn: 6, danger: 7 }) });
                 }
-                loaded += 5;
             }
 
+            // DST
             const dst = await fetchWithProxy('https://services.swpc.noaa.gov/products/kyoto-dst.json');
             if (dst?.length > 0) {
                 const lastDst = parseFloat(dst[dst.length - 1][1]) || 0;
+                solarIndices.dst = lastDst;
                 html += `<div class="row"><span class="label">Dst Index </span><span class="val ${getColorClass(-lastDst, { watch: 50, warn: 100, danger: 200 })}">${lastDst} nT</span></div>`;
                 heatmapValues.push({ value: lastDst, color: getColor(-lastDst, { watch: 50, warn: 100, danger: 200 }) });
-                loaded++;
-                for (let i = 2; i <= 6; i++) {
-                    let val = parseFloat(dst[dst.length - i][1]) || 0;
-                    html += `<div class="row"><span class="label">Prev Dst-${i - 1} </span><span class="val ${getColorClass(-val, { watch: 50, warn: 100, danger: 200 })}">${val} nT</span></div>`;
-                    heatmapValues.push({ value: val, color: getColor(-val, { watch: 50, warn: 100, danger: 200 }) });
-                }
-                loaded += 5;
             }
 
+            // X-RAY
             const xray = await fetchWithProxy('https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json');
             if (xray?.length > 0) {
-                let latest = xray[0];
-                html += `<div class="row"><span class="label">X-ray Flare </span><span class="val">${latest.flux ?? '--'} ${latest.class_type ?? ''}</span></div>`;
-                heatmapValues.push({ value: latest.flux ?? 0, color: '#ffd700' });
-                loaded++;
-                for (let i = 1; i < 6 && i < xray.length; i++) {
-                    html += `<div class="row"><span class="label">Prev X-ray ${i} </span><span class="val">${xray[i].class_type ?? '--'}</span></div>`;
-                    heatmapValues.push({ value: 0, color: '#ffd700' });
-                }
-                loaded += 5;
+                html += `<div class="row"><span class="label">X-ray Flare </span><span class="val">${xray[0].flux ?? '--'} ${xray[0].class_type ?? ''}</span></div>`;
+                solarIndices.xray = Math.log10(xray[0].flux || 1e-8);
+                heatmapValues.push({ value: 0, color: '#ffd700' });
             }
 
-            // --- NEW COSMOS SOURCES (Filling the request for more data) ---
-
-            // 1. Sunspot Number (Daily)
+            // Sunspots
             const sunspots = await fetchWithProxy('https://services.swpc.noaa.gov/json/solar-cycle/predicted-solar-cycle.json');
             if (sunspots && sunspots.length > 0) {
-                // Just taking the last prediction as a proxy for "current activity level" context
-                const lastSpot = sunspots[sunspots.length - 1];
-                const val = lastSpot['predicted_sunspot_number'];
+                const val = sunspots[sunspots.length - 1]['predicted_sunspot_number'];
+                solarIndices.ssn = val;
                 html += `<div class="row"><span class="label">Sunspot Num </span><span class="val">${val}</span></div>`;
                 heatmapValues.push({ value: val, color: '#ffd700' });
-                loaded++;
             }
 
-            // 2. Proton Flux (Integral Proton Flux > 10 MeV)
+            // Proton
             const proton = await fetchWithProxy('https://services.swpc.noaa.gov/json/goes/primary/integral-protons-1-day.json');
             if (proton && proton.length > 0) {
-                const lastProton = proton[proton.length - 1];
-                const val = parseFloat(lastProton.flux);
-                html += `<div class="row"><span class="label">Proton Flux </span><span class="val ${getColorClass(val, { watch: 10, warn: 100, danger: 1000 })}">${val.toExponential(1)} pfu</span></div>`;
+                const val = parseFloat(proton[proton.length - 1].flux);
+                solarIndices.proton = val;
+                html += `<div class="row"><span class="label">Proton Flux </span><span class="val ${getColorClass(val, { watch: 10, warn: 100, danger: 1000 })}">${val.toExponential(1)}</span></div>`;
                 heatmapValues.push({ value: val, color: getColor(val, { watch: 10, warn: 100, danger: 1000 }) });
-                loaded++;
             }
 
-            // 3. Electron Flux (> 2 MeV)
+            // Electron
             const electron = await fetchWithProxy('https://services.swpc.noaa.gov/json/goes/primary/integral-electrons-1-day.json');
             if (electron && electron.length > 0) {
-                const lastElectron = electron[electron.length - 1];
-                const val = parseFloat(lastElectron.flux);
-                html += `<div class="row"><span class="label">Electron Flux </span><span class="val ${getColorClass(val, { watch: 1000, warn: 10000, danger: 100000 })}">${val.toExponential(1)} pfu</span></div>`;
+                const val = parseFloat(electron[electron.length - 1].flux);
+                solarIndices.electron = val;
+                html += `<div class="row"><span class="label">Electron Flux </span><span class="val ${getColorClass(val, { watch: 1000, warn: 10000, danger: 100000 })}">${val.toExponential(1)}</span></div>`;
                 heatmapValues.push({ value: val, color: getColor(val, { watch: 1000, warn: 10000, danger: 100000 }) });
-                loaded++;
             }
 
-
-            // =========================================================================================
-            // 4. ВОДА (GLOBAL & BLACK SEA)
-            // =========================================================================================
+            // --- 4. WATER ---
             html += '<div class="category">ВОДА (GLOBAL)</div>';
             const waterPoints = [
                 { name: 'Black Sea', lat: 43.0, lon: 34.0 },
@@ -480,37 +602,27 @@
                 { name: 'North Atlantic', lat: 45.0, lon: -30.0 },
                 { name: 'Pacific Ocean', lat: 20.0, lon: -155.0 }
             ];
-
             for (const wp of waterPoints) {
                 const wData = await fetchSmart(`https://marine-api.open-meteo.com/v1/marine?latitude=${wp.lat}&longitude=${wp.lon}&current=wave_height,sea_surface_temperature`);
                 if (wData?.current) {
                     const wm = wData.current;
-                    html += `<div class="row"><span class="label">${wp.name} Temp </span><span class="val ${getColorClass(wm.sea_surface_temperature, { watch: 25, warn: 30, danger: 32 })}">${wm.sea_surface_temperature}°C</span></div>`;
-                    html += `<div class="row"><span class="label">${wp.name} Wave </span><span class="val ${getColorClass(wm.wave_height, { watch: 2, warn: 4, danger: 6 })}">${wm.wave_height}m</span></div>`;
+                    html += `<div class="row"><span class="label">${wp.name} </span><span class="val">${wm.sea_surface_temperature}°C / ${wm.wave_height}m</span></div>`;
                     heatmapValues.push({ value: wm.sea_surface_temperature, color: getColor(wm.sea_surface_temperature, { watch: 25, warn: 30, danger: 32 }) });
                     loaded++;
                 }
             }
 
-            // =========================================================================================
-            // 5. ЕНЕРГІЯ
-            // =========================================================================================
-            html += '<div class="category">ЕНЕРГІЯ</div>';
+            // --- 5. ENERGY ---
+            html += '<div class="category">ЕНЕРГІЯ (YAHOO)</div>';
             const commodities = [
                 { symbol: 'CL=F', name: 'WTI Oil' },
                 { symbol: 'BZ=F', name: 'Brent Oil' },
-                { symbol: 'NG=F', name: 'Natural Gas' },
+                { symbol: 'NG=F', name: 'Nat. Gas' },
                 { symbol: 'GC=F', name: 'Gold' },
                 { symbol: 'SI=F', name: 'Silver' },
-                { symbol: 'HG=F', name: 'Copper' },
-                { symbol: 'PL=F', name: 'Platinum' },
-                { symbol: 'PA=F', name: 'Palladium' },
-                { symbol: 'ALI=F', name: 'Aluminum', fallback: true },
-                { symbol: 'RB=F', name: 'Gasoline RBOB' }
+                { symbol: 'HG=F', name: 'Copper' }
             ];
-
             for (const c of commodities) {
-                if (c.fallback) continue;
                 const dat = await fetchWithProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?range=1d&interval=1d`);
                 if (dat?.chart?.result?.[0]?.meta?.regularMarketPrice) {
                     const val = dat.chart.result[0].meta.regularMarketPrice;
@@ -520,16 +632,13 @@
                 }
             }
 
-            // 6. АГРО
-            html += '<div class="category">АГРО (FUTURES)</div>';
+            // --- 6. AGRO ---
+            html += '<div class="category">АГРО (YAHOO)</div>';
             const agro = [
                 { symbol: 'ZC=F', name: 'Corn' },
                 { symbol: 'ZW=F', name: 'Wheat' },
                 { symbol: 'ZS=F', name: 'Soybean' },
-                { symbol: 'SB=F', name: 'Sugar' },
-                { symbol: 'KC=F', name: 'Coffee' },
-                { symbol: 'CC=F', name: 'Cocoa' },
-                { symbol: 'CT=F', name: 'Cotton' }
+                { symbol: 'KC=F', name: 'Coffee' }
             ];
             for (const c of agro) {
                 const dat = await fetchWithProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?range=1d&interval=1d`);
@@ -541,85 +650,272 @@
                 }
             }
 
-            // 7. ЗЕМЛЕТРУСИ
-            html += '<div class="category">ЗЕМЛЕТРУСИ</div>';
+            // --- 7. EARTHQUAKES ---
+            html += '<div class="category">ЗЕМЛЕТРУСИ (LAST HR)</div>';
             const quakes = await fetchSmart('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson');
             if (quakes?.features) {
-                quakes.features.slice(0, 10).forEach((q, i) => {
+                const feats = quakes.features;
+                // Visuals
+                const maxMag = feats.reduce((m, f) => Math.max(m, f.properties?.mag || 0), 0);
+                realData.seismic = Math.min(1, (feats.length / 30) + (maxMag / 10) * 0.5);
+
+                feats.slice(0, 8).forEach((q) => {
                     const mag = q.properties.mag || 0;
-                    const place = (q.properties.place || 'Unknown').substring(0, 20);
+                    const place = (q.properties.place || 'Unknown').substring(0, 18);
                     html += `<div class="row"><span class="label">M${mag.toFixed(1)} </span><span class="val ${getColorClass(mag, { watch: 4, warn: 5, danger: 6 })}">${place}</span></div>`;
                     heatmapValues.push({ value: mag, color: getColor(mag, { watch: 4, warn: 5, danger: 6 }) });
-                    loaded++;
                 });
+                loaded++;
             }
 
-            // 8. ФІНАНСИ & КРИПТА
-            html += '<div class="category">ФІНАНСИ & CRYPTO</div>';
-            const cryptoIds = 'bitcoin,ethereum,cardano,solana,ripple,litecoin,binancecoin,polkadot,chainlink,dash,monero,dogecoin,shiba-inu,uniswap,avalanche-2,cosmos';
+            // --- 8. FINANCE & CRYPTO ---
+            html += '<div class="category">CRYPTO & MARKET</div>';
+            const cryptoIds = 'bitcoin,ethereum,solana,ripple,cardano';
             const crypto = await fetchWithProxy(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds}&vs_currencies=usd`);
-
             if (crypto) {
-                const manualOrder = ['bitcoin', 'ethereum', 'solana', 'binancecoin', 'ripple', 'cardano', 'dogecoin', 'avalanche-2', 'shiba-inu', 'polkadot', 'chainlink', 'litecoin', 'uniswap', 'monero', 'cosmos', 'dash'];
-                manualOrder.forEach(key => {
-                    if (crypto[key]) {
-                        const val = crypto[key].usd;
-                        const displayVal = val < 1 ? val.toFixed(6) : val.toFixed(2);
-                        html += `<div class="row"><span class="label">${key.toUpperCase()} USD </span><span class="val">${displayVal}</span></div>`;
-                        heatmapValues.push({ value: val, color: '#0f0' });
-                        loaded++;
-                    }
-                });
+                for (let k in crypto) {
+                    html += `<div class="row"><span class="label">${k.toUpperCase()} </span><span class="val">${crypto[k].usd} $</span></div>`;
+                    heatmapValues.push({ value: 1, color: '#0f0' });
+                }
             }
-
             const sp500 = await fetchSmart('https://query1.finance.yahoo.com/v8/finance/chart/^GSPC?range=1d&interval=1d');
             if (sp500?.chart?.result?.[0]?.meta?.regularMarketPrice) {
-                const val = sp500.chart.result[0].meta.regularMarketPrice;
-                html += `<div class="row"><span class="label">S&P 500 </span><span class="val">${val.toFixed(2)}</span></div>`;
-                heatmapValues.push({ value: val, color: '#0f0' });
-                loaded++;
+                html += `<div class="row"><span class="label">S&P 500 </span><span class="val">${sp500.chart.result[0].meta.regularMarketPrice.toFixed(2)}</span></div>`;
             }
 
-            const nasdaq = await fetchSmart('https://query1.finance.yahoo.com/v8/finance/chart/^IXIC?range=1d&interval=1d');
-            if (nasdaq?.chart?.result?.[0]?.meta?.regularMarketPrice) {
-                const val = nasdaq.chart.result[0].meta.regularMarketPrice;
-                html += `<div class="row"><span class="label">NASDAQ </span><span class="val">${val.toFixed(2)}</span></div>`;
-                heatmapValues.push({ value: val, color: '#0f0' });
-                loaded++;
-            }
-
-            // 9. ВАЛЮТИ
+            // --- 9. CURRENCIES ---
             html += '<div class="category">ВАЛЮТИ</div>';
             const cbRates = await fetchWithProxy('https://api.coinbase.com/v2/exchange-rates?currency=USD');
             if (cbRates?.data?.rates) {
-                const rates = cbRates.data.rates;
-                const currencies = [
-                    { label: 'USD → EUR', val: rates.EUR },
-                    { label: 'USD → GBP', val: rates.GBP },
-                    { label: 'USD → JPY', val: rates.JPY },
-                    { label: 'USD → CAD', val: rates.CAD },
-                    { label: 'USD → AUD', val: rates.AUD },
-                    { label: 'USD → CHF', val: rates.CHF },
-                    { label: 'USD → CNY', val: rates.CNY },
-                    { label: 'USD → UAH', val: rates.UAH },
-                    { label: 'USD → RUB', val: rates.RUB, dim: true }
-                ];
-                currencies.forEach(m => {
-                    const rateVal = parseFloat(m.val);
-                    const val = rateVal ? rateVal.toFixed(4) : '--';
-                    html += `<div class="row"><span class="label" style="${m.dim ? 'opacity:0.5' : ''}">${m.label} </span><span class="val">${val}</span></div>`;
-                    heatmapValues.push({ value: rateVal || 0, color: '#0f0' });
+                const r = cbRates.data.rates;
+                const cList = ['EUR', 'GBP', 'JPY', 'UAH'];
+                cList.forEach(c => {
+                    const val = parseFloat(r[c]);
+                    html += `<div class="row"><span class="label">USD/${c} </span><span class="val">${val.toFixed(2)}</span></div>`;
+                    heatmapValues.push({ value: val, color: '#0f0' });
                 });
-                loaded += currencies.length;
             }
 
+            // --- CHAOS CALC ---
+            Object.keys(realData).forEach(k => { if (k !== 'chaos') { dataHistory[k].push(realData[k]); if (dataHistory[k].length > 80) dataHistory[k].shift(); } });
+            let vars = [];
+            Object.keys(dataHistory).forEach(k => {
+                if (k === 'chaos') return;
+                const h = dataHistory[k];
+                if (h.length < 2) return;
+                const mean = h.reduce((a, b) => a + b, 0) / h.length;
+                const varnce = h.reduce((a, b) => a + (b - mean) ** 2, 0) / h.length;
+                vars.push(Math.sqrt(varnce));
+            });
+            realData.chaos = vars.length ? Math.min(1, vars.reduce((a, b) => a + b, 0) / vars.length * 10) : 0.5;
+
+            // Render
             dataDiv.innerHTML = html || '<div>немає даних</div>';
-            statusDiv.innerHTML = `оновлено (${loaded} джерел) • ${new Date().toLocaleTimeString()}`;
+            statusDiv.innerHTML = `джерела: ${loaded} • ${new Date().toLocaleTimeString()}`;
             updateHeatmap();
+
+            // Update Visual Params
+            blobs.forEach(b => {
+                const v = realData[b.param] || 0.5;
+                b.targetSize = 4 + v * 14;
+                b.targetAlpha = 0.3 + v * 0.6;
+                b.targetDist = 70 + v * 80;
+            });
         }
 
+        // Initial Fetch
         fetchAllData();
-        setInterval(fetchAllData, 60000); 
+        setInterval(fetchAllData, 60000);
+
+        // ============================================
+        // 5. DRAWING LOOPS (Code 1 Graphs & Visuals)
+        // ============================================
+        // Re-implementing draw logic for the 3 graphs on right side
+        function drawCombinedGrid() {
+            if (canvas.width < 900) return; // Hide graphs on small screens to prioritize list
+            const w = 180, h = 100, mx = canvas.width - w - 20, my = 80;
+            ctx.save(); ctx.translate(mx, my);
+            ctx.fillStyle = 'rgba(0,255,180,0.8)'; ctx.font = '10px Courier New'; ctx.fillText('MAIN INDICES', 0, -5);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = 'rgba(180,180,180,0.2)'; ctx.strokeRect(0, 0, w, h);
+            const keys = Object.keys(realData);
+            ctx.beginPath(); let f = true;
+            keys.forEach((k, i) => {
+                if (k === 'chaos') return; const v = realData[k]; const x = i * (w / (keys.length - 1)); const y = h - v * h;
+                f ? ctx.moveTo(x, y) : ctx.lineTo(x, y); f = false;
+            });
+            ctx.strokeStyle = 'rgba(0,255,180,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawSolarGrid() {
+            if (canvas.width < 900) return;
+            const w = 180, h = 100, mx = canvas.width - w - 20, my = 220;
+            ctx.save(); ctx.translate(mx, my);
+            ctx.fillStyle = 'rgba(255,220,80,0.8)'; ctx.font = '10px Courier New'; ctx.fillText('SOLAR INDICES', 0, -5);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = 'rgba(255,180,0,0.3)'; ctx.strokeRect(0, 0, w, h);
+            const keys = Object.keys(solarIndices);
+            ctx.beginPath(); let f = true;
+            keys.forEach((k, i) => {
+                let v = solarIndices[k];
+                if (k === 'f107') v /= 250; else if (k === 'kp') v /= 9; else if (k === 'dst') v = (v + 100) / 200;
+                else if (k === 'proton' || k === 'electron') v = Math.log10(v + 1) / 5;
+                else if (k === 'xray') v = (v + 8) / 6; else v /= 100; // fallback
+                v = Math.max(0, Math.min(1, v));
+                const x = i * (w / (keys.length - 1)); const y = h - v * h;
+                f ? ctx.moveTo(x, y) : ctx.lineTo(x, y); f = false;
+            });
+            ctx.strokeStyle = 'rgba(255,220,80,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawEarthEnvGrid() {
+            if (canvas.width < 900) return;
+            const w = 180, h = 100, mx = canvas.width - w - 20, my = 360;
+            ctx.save(); ctx.translate(mx, my);
+            ctx.fillStyle = 'rgba(80,255,220,0.8)'; ctx.font = '10px Courier New'; ctx.fillText('EARTH ENV', 0, -5);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = 'rgba(80,255,220,0.3)'; ctx.strokeRect(0, 0, w, h);
+            const keys = Object.keys(earthEnvData);
+            ctx.beginPath(); let f = true;
+            keys.forEach((k, i) => {
+                let v = earthEnvData[k];
+                if (k.includes('pm')) v /= 100; else if (k.includes('aqi')) v /= 200; else if (k === 'co') v /= 1; else if (k === 'uv') v /= 10; else if (k === 'humidity') v /= 100; else if (k === 'visibility') v /= 30;
+                v = Math.max(0, Math.min(1, v));
+                const x = i * (w / (keys.length - 1)); const y = h - v * h;
+                f ? ctx.moveTo(x, y) : ctx.lineTo(x, y); f = false;
+            });
+            ctx.strokeStyle = 'rgba(80,255,220,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawSystemTopology() {
+            const r = Math.min(canvas.width, canvas.height) * 0.16;
+            const cx = canvas.width / 2 + (canvas.width > 900 ? 50 : 0); // Offset slightly if graphs present
+            const cy = canvas.height / 2;
+
+            ctx.save(); ctx.translate(cx, cy);
+            ctx.strokeStyle = 'rgba(0, 180, 255, 0.15)'; ctx.lineWidth = 1;
+            [0.3, 0.6, 1.0].forEach(rr => { ctx.beginPath(); ctx.arc(0, 0, r * rr, 0, Math.PI * 2); ctx.stroke(); });
+
+            const keys = [{ k: 'seismic', l: 'SEISMIC' }, { k: 'magnetic', l: 'MAGNETIC' }, { k: 'solar_wind', l: 'SOL.WIND' }, { k: 'atmosphere_temp', l: 'TEMP' }, { k: 'air_quality_aqi', l: 'AQI', src: earthEnvData, max: 200 }, { k: 'precipitation', l: 'RAIN' }, { k: 'chaos', l: 'CHAOS' }, { k: 'solar_radiation', l: 'SOL.RAD' }];
+            const step = 6.28 / keys.length;
+
+            ctx.beginPath();
+            keys.forEach((d, i) => {
+                let v = (d.src ? d.src[d.k] : realData[d.k]) || 0;
+                if (d.max) v /= d.max;
+                v = Math.max(0.1, Math.min(1, v));
+                const rr = (v + Math.sin(t * 2 + i) * 0.05 * realData.chaos) * r;
+                const a = i * step - 1.57;
+                const x = Math.cos(a) * rr; const y = Math.sin(a) * rr;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            });
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 100, 50, 0.15)'; ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 100, 50, 0.8)'; ctx.lineWidth = 2; ctx.stroke();
+
+            // Labels & Dots
+            keys.forEach((d, i) => {
+                let v = (d.src ? d.src[d.k] : realData[d.k]) || 0; if (d.max) v /= d.max; v = Math.max(0.1, Math.min(1, v));
+                const rr = (v + Math.sin(t * 2 + i) * 0.05 * realData.chaos) * r;
+                const a = i * step - 1.57;
+                const x = Math.cos(a) * rr; const y = Math.sin(a) * rr;
+                ctx.beginPath(); ctx.arc(x, y, 3, 0, 6.28); ctx.fillStyle = '#fff'; ctx.fill();
+
+                if (canvas.width > 500) {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); ctx.stroke();
+                    ctx.fillStyle = 'rgba(0, 200, 255, 0.8)'; ctx.font = '9px Courier New';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(d.l, Math.cos(a) * (r + 20), Math.sin(a) * (r + 20));
+                }
+            });
+
+            ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '10px Courier New';
+            ctx.textAlign = 'center'; ctx.fillText('TOPOLOGY', 0, 5);
+            ctx.restore();
+        }
+
+        // ============================================
+        // 6. MAIN LOOP
+        // ============================================
+        let t = 0;
+        function loop() {
+            t += 0.016;
+            ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0, 0, canvas.width, canvas.height); // Trails
+
+            const chaos = realData.chaos;
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            // Stars
+            const starMod = 1 - chaos * 0.3;
+            stars.forEach(s => {
+                const tw = Math.sin(t * s.twinkle * 12 + s.x * 0.008) * 0.18 * starMod;
+                ctx.fillStyle = `rgba(220,235,255,${Math.max(0.08, s.baseAlpha + tw).toFixed(3)})`;
+                ctx.fillRect(s.x, s.y, s.size, s.size);
+            });
+
+            // Grid (Code 1 Style)
+            if (t % 3 < 2.9) {
+                ctx.strokeStyle = 'rgba(180,100,255,0.03)'; ctx.lineWidth = 1;
+                const spacing = 40;
+                for (let gx = 0; gx < canvas.width; gx += spacing) {
+                    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke();
+                }
+            }
+
+            // Central Solar Rings (Code 1)
+            for (let s = 0; s < 4; s++) {
+                ctx.beginPath();
+                for (let i = 0; i < 90; i++) {
+                    const angle = i * 0.2 + t * 0.5 + s;
+                    const radius = i * 0.5 + 25 * Math.sin(t * 0.5 + i * 0.3) + realData.solar_radiation * 20;
+                    const x = cx + Math.cos(angle + s) * radius;
+                    const y = cy + Math.sin(angle + s) * radius;
+                    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = `rgba(255,${100 + s * 40},${50 + s * 30},${0.05 + realData.solar_wind * 0.15})`;
+                ctx.lineWidth = 1 + s * 0.5; ctx.stroke();
+            }
+
+            // Floating Formulas
+            formulaObjs.forEach(f => {
+                f.alpha = Math.sin(t * 0.5 + f.phase) * 0.5 + 0.5;
+                ctx.fillStyle = `rgba(180,255,200,${f.alpha * 0.25})`;
+                ctx.font = '16px Courier New';
+                ctx.fillText(f.text, f.x + Math.sin(t + f.phase) * 20, f.y + Math.cos(t + f.phase) * 15);
+            });
+
+            // Draw Graphs & Topology
+            drawCombinedGrid();
+            drawSolarGrid();
+            drawEarthEnvGrid();
+            drawSystemTopology();
+
+            // Blobs
+            const avg = blobs.reduce((s, b) => s + (realData[b.param] || 0.5), 0) / blobs.length;
+            blobs.forEach(b => {
+                b.currentSize = lerp(b.currentSize, b.targetSize, 0.04 + chaos * 0.10);
+                b.currentAlpha = lerp(b.currentAlpha, b.targetAlpha, 0.05 + chaos * 0.12);
+                b.currentDist = lerp(b.currentDist, b.radius + (realData[b.param] || 0) * 40, 0.04 + chaos * 0.08);
+                const pulse = Math.sin(t * 0.7 + b.phase) * 0.15;
+                b.angle += (0.006 + avg * 0.02) * (1 + pulse * 0.3);
+
+                const x = cx + Math.cos(b.angle) * b.currentDist;
+                const y = cy + Math.sin(b.angle) * b.currentDist;
+                ctx.fillStyle = b.color + b.currentAlpha.toFixed(2) + ')';
+                ctx.beginPath(); ctx.arc(x, y, b.currentSize * (1 + pulse), 0, Math.PI * 2); ctx.fill();
+            });
+
+            requestAnimationFrame(loop);
+        }
+        loop();
+
+        // System Link Click
+        document.getElementById('system-link').addEventListener('click', () => {
+            window.open('https://lavandaaudit.github.io/indicator-100-live-/', '_blank', 'noopener,noreferrer');
+        });
+
     </script>
 </body>
 
