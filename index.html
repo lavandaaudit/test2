@@ -124,7 +124,6 @@
             position: absolute;
             top: 80px;
             right: 650px;
-            /* Moved significantly left to avoid overlapping with 2nd column of graphs */
             display: grid;
             grid-template-columns: repeat(8, 14px);
             gap: 2px;
@@ -354,7 +353,7 @@
         let aqiHistory = [];
         let solarWindHistory = [];
         let oilHistory = [];
-        let windHistory = []; // Fixed: Added initialization for weather wind history
+        let windHistory = [];
 
         let heatmapValues = [];
 
@@ -428,7 +427,7 @@
             statusDiv.innerHTML = 'оновлення джерел...';
             let html = '';
             let loaded = 0;
-            heatmapValues = []; // Clear for new cycle
+            heatmapValues = [];
 
             // --- 1. WEATHER ---
             html += '<div class="category">ПОГОДА (KYIV)</div>';
@@ -498,7 +497,6 @@
             html += '<div class="category">КОСМОС (SOLAR)</div>';
             const plasma = await fetchWithProxy('https://services.swpc.noaa.gov/products/solar-wind/plasma-7-day.json');
             if (plasma?.length > 1) {
-                // Determine indices from header if possible, else use default [1:den, 2:speed, 3:temp]
                 let speedIdx = 2, denIdx = 1, tempIdx = 3;
                 if (plasma[0].includes('speed')) speedIdx = plasma[0].indexOf('speed');
                 if (plasma[0].includes('density')) denIdx = plasma[0].indexOf('density');
@@ -511,7 +509,7 @@
                     const temp = parseFloat(lastValid[tempIdx]);
                     realData.solar_wind = Math.min(1, Math.max(0, (speed - 250) / 750));
                     solarIndices.density = den;
-                    solarIndices.bz = -2.5; // Bz is usually in magnetometer data, not plasma, sticking to dummy or separate fetch
+                    solarIndices.bz = -2.5;
                     updateHistory(solarWindHistory, speed);
 
                     const plasmaMetrics = [
@@ -641,7 +639,6 @@
                 });
             }
 
-            // Update dataHistory for old graphs
             Object.keys(realData).forEach(k => {
                 updateHistory(dataHistory[k], realData[k]);
             });
@@ -795,103 +792,184 @@
             ctx.restore();
         }
 
+        // --- THE COMPASS VISUALIZER (TOPOLOGY REPLACEMENT) ---
         function drawSystemTopology() {
-            const r = Math.min(canvas.width, canvas.height) * 0.16;
+            const breathScale = 1 + Math.sin(t * 0.5) * 0.04; // Slow breathing cycle
+            const r = Math.min(canvas.width, canvas.height) * 0.18 * breathScale;
             const cx = canvas.width / 2 + (canvas.width > 900 ? 50 : 0);
             const cy = canvas.height / 2;
             ctx.save(); ctx.translate(cx, cy);
-            ctx.strokeStyle = 'rgba(0, 180, 255, 0.15)'; ctx.lineWidth = 1;
-            [0.3, 0.6, 1.0].forEach(rr => { ctx.beginPath(); ctx.arc(0, 0, r * rr, 0, 6.28); ctx.stroke(); });
-            const keys = [{ k: 'seismic', l: 'SEISMIC' }, { k: 'magnetic', l: 'MAGNETIC' }, { k: 'solar_wind', l: 'SOL.WIND' }, { k: 'atmosphere_temp', l: 'TEMP' }, { k: 'air_quality_aqi', l: 'AQI', src: earthEnvData, max: 200 }, { k: 'precipitation', l: 'RAIN' }, { k: 'chaos', l: 'CHAOS' }, { k: 'solar_radiation', l: 'SOL.RAD' }];
+
+            // 1. OUTER ROTATING COMPASS RING
+            ctx.save();
+            ctx.rotate(t * 0.08);
+            ctx.strokeStyle = 'rgba(0, 180, 255, 0.15)';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(0, 0, r * 1.15, 0, 6.28); ctx.stroke();
+            for (let i = 0; i < 360; i += 5) {
+                const a = i * Math.PI / 180;
+                const len = i % 45 === 0 ? 10 : (i % 10 === 0 ? 5 : 2);
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * r * 1.1, Math.sin(a) * r * 1.1);
+                ctx.lineTo(Math.cos(a) * (r * 1.1 + len), Math.sin(a) * (r * 1.1 + len));
+                ctx.strokeStyle = i % 45 === 0 ? 'rgba(0, 255, 255, 0.5)' : 'rgba(0, 180, 255, 0.2)';
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // 1b. MINIMALISTIC INTERNAL ROTATING ACCENT
+            ctx.save();
+            ctx.rotate(-t * 0.2);
+            ctx.setLineDash([2, 12]);
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+            ctx.beginPath(); ctx.arc(0, 0, r * 0.7, 0, 6.28); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            // 2. RADIAL GRID
+            ctx.strokeStyle = 'rgba(0, 180, 255, 0.08)';
+            [0.2, 0.4, 0.6, 0.8, 1.0].forEach(fr => {
+                ctx.beginPath(); ctx.arc(0, 0, r * fr, 0, 6.28); ctx.stroke();
+            });
+
+            // 4. DATA POLYGON (THE "COMPASS INTERIOR")
+            const keys = [
+                { k: 'seismic', l: 'SEISMIC', threshold: 0.7, alertName: 'SEISMIC SHIFT' },
+                { k: 'magnetic', l: 'MAGNETIC', threshold: 0.7, alertName: 'MAG. ANOMALY' },
+                { k: 'solar_wind', l: 'SOL.WIND', threshold: 0.7, alertName: 'SOLAR STORM' },
+                { k: 'atmosphere_temp', l: 'TEMP', threshold: 0.8, alertName: 'THERMAL SPIKE' },
+                { k: 'air_quality_aqi', l: 'AQI', src: earthEnvData, max: 200, threshold: 0.5, alertName: 'AQI WARNING' },
+                { k: 'precipitation', l: 'RAIN', threshold: 0.6, alertName: 'HEAVY RAIN' },
+                { k: 'chaos', l: 'CHAOS', threshold: 0.8, alertName: 'CHAOS INDEX HI' },
+                { k: 'solar_radiation', l: 'SOL.RAD', threshold: 0.7, alertName: 'RAD. ALERT' }
+            ];
             const step = 6.28 / keys.length;
+
             ctx.beginPath();
             keys.forEach((d, i) => {
                 let v = (d.src ? d.src[d.k] : realData[d.k]) || 0; if (d.max) v /= d.max; v = Math.max(0.1, Math.min(1, v));
-                const rr = (v + Math.sin(t * 2 + i) * 0.05 * realData.chaos) * r;
+                const rr = (v + Math.sin(t * 1.2 + i) * 0.03 * realData.chaos) * r;
                 const a = i * step - 1.57; const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
                 i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
             });
-            ctx.closePath(); ctx.fillStyle = 'rgba(255, 100, 50, 0.15)'; ctx.fill(); ctx.strokeStyle = 'rgba(255, 100, 50, 0.8)'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.closePath();
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+            grad.addColorStop(0, 'rgba(0, 100, 255, 0.05)');
+            grad.addColorStop(0.7, 'rgba(0, 255, 150, 0.08)');
+            grad.addColorStop(1, 'rgba(255, 50, 0, 0.2)');
+            ctx.fillStyle = grad; ctx.fill();
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+            // 5. DATA POINTS, LABELS & ANIMATED ALERTS
             keys.forEach((d, i) => {
-                let v = (d.src ? d.src[d.k] : realData[d.k]) || 0; if (d.max) v /= d.max; v = Math.max(0.1, Math.min(1, v));
-                const rr = (v + Math.sin(t * 2 + i) * 0.05 * realData.chaos) * r;
-                const a = i * step - 1.57; const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+                let rawV = (d.src ? d.src[d.k] : realData[d.k]) || 0;
+                let v = rawV; if (d.max) v /= d.max; v = Math.max(0.1, Math.min(1, v));
+                const rr = (v + Math.sin(t * 1.2 + i) * 0.03 * realData.chaos) * r;
+                const a = i * step - 1.57;
+                const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+
+                // Active point blinking
                 ctx.beginPath(); ctx.arc(x, y, 3, 0, 6.28); ctx.fillStyle = '#fff'; ctx.fill();
+                ctx.shadowBlur = v > 0.7 ? 15 : 8; ctx.shadowColor = v > 0.7 ? '#f00' : '#0ff'; ctx.stroke(); ctx.shadowBlur = 0;
+
+                // Labels
                 if (canvas.width > 550) {
-                    ctx.fillStyle = 'rgba(0, 200, 255, 0.8)'; ctx.font = '9px Courier New'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.fillText(d.l, Math.cos(a) * (r + 20), Math.sin(a) * (r + 20));
+                    const labelDist = r + 45 + (Math.sin(t * 0.5) * 5);
+                    const lx = Math.cos(a) * labelDist, ly = Math.sin(a) * labelDist;
+                    ctx.fillStyle = `rgba(0, 220, 255, ${0.4 + breathScale * 0.4})`; ctx.font = '10px Courier New';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(d.l, lx, ly);
+                    ctx.beginPath(); ctx.moveTo(Math.cos(a) * (rr + 5), Math.sin(a) * (rr + 5)); ctx.lineTo(Math.cos(a) * (labelDist - 10), Math.sin(a) * (labelDist - 10));
+                    ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)'; ctx.stroke();
+                }
+
+                // --- ALERT LOGIC ---
+                if (v >= d.threshold) {
+                    const alertBreath = Math.sin(t * 10) * 0.5 + 0.5; // High speed flash
+                    ctx.save();
+                    ctx.translate(x, y);
+
+                    // Warning Circle
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 15 + alertBreath * 10, 0, 6.28);
+                    ctx.strokeStyle = `rgba(255, 50, 0, ${0.3 * (1 - alertBreath)})`;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Alert Text
+                    const tx = Math.cos(a) * 30, ty = Math.sin(a) * 30;
+                    ctx.fillStyle = `rgba(255, 0, 0, ${0.5 + alertBreath * 0.5})`;
+                    ctx.font = 'bold 9px Courier New';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('!ALERT!', tx, ty);
+                    ctx.font = '8px Courier New';
+                    ctx.fillText(d.alertName, tx, ty + 10);
+
+                    // Animated bracket around text
+                    ctx.strokeStyle = `rgba(255, 0, 0, ${0.3 + alertBreath * 0.4})`;
+                    ctx.beginPath();
+                    ctx.moveTo(tx - 25, ty - 5); ctx.lineTo(tx - 25, ty + 15);
+                    ctx.moveTo(tx + 25, ty - 5); ctx.lineTo(tx + 25, ty + 15);
+                    ctx.stroke();
+
+                    ctx.restore();
                 }
             });
+
             ctx.restore();
         }
 
         let t = 0;
         function loop() {
             t += 0.016;
-            ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             const chaos = realData.chaos, cx = canvas.width / 2, cy = canvas.height / 2;
+
+            // STARS
             stars.forEach(s => {
                 const tw = Math.sin(t * s.twinkle * 12 + s.x * 0.008) * 0.18 * (1 - chaos * 0.3);
                 ctx.fillStyle = `rgba(220,235,255,${Math.max(0.08, s.baseAlpha + tw).toFixed(3)})`;
                 ctx.fillRect(s.x, s.y, s.size, s.size);
             });
-            for (let s = 0; s < 4; s++) {
-                ctx.beginPath();
-                for (let i = 0; i < 90; i++) {
-                    const angle = i * 0.2 + t * 0.5 + s;
-                    const radius = i * 0.5 + 25 * Math.sin(t * 0.5 + i * 0.3) + realData.solar_radiation * 20;
-                    const x = cx + Math.cos(angle + s) * radius, y = cy + Math.sin(angle + s) * radius;
-                    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-                }
-                ctx.strokeStyle = `rgba(255,${100 + s * 40},${50 + s * 30},${0.05 + realData.solar_wind * 0.15})`;
-                ctx.lineWidth = 1 + s * 0.5; ctx.stroke();
-            }
+
+            // RADAR SWIPE EFFECT
+            ctx.save();
+            const radarCx = cx + (canvas.width > 900 ? 50 : 0);
+            ctx.translate(radarCx, cy);
+            ctx.rotate(t * 1.5);
+            const radarGrad = ctx.createConicGradient(0, 0, 0);
+            radarGrad.addColorStop(0, 'rgba(0, 255, 255, 0.15)');
+            radarGrad.addColorStop(0.1, 'rgba(0, 255, 255, 0)');
+            radarGrad.addColorStop(1, 'rgba(0, 255, 255, 0)');
+            ctx.fillStyle = radarGrad;
+            ctx.beginPath(); ctx.arc(0, 0, Math.min(canvas.width, canvas.height) * 0.3, 0, 6.28); ctx.fill();
+            ctx.restore();
+
+            // FORMULAS
             formulaObjs.forEach(f => {
                 f.alpha = Math.sin(t * 0.5 + f.phase) * 0.5 + 0.5;
                 ctx.fillStyle = `rgba(180,255,200,${f.alpha * 0.25})`;
                 ctx.font = '16px Courier New'; ctx.fillText(f.text, f.x + Math.sin(t + f.phase) * 20, f.y + Math.cos(t + f.phase) * 15);
             });
 
-            // EXISTING GRAPHS (RIGHT COLUMN 1)
             drawCombinedGrid();
             drawSolarGrid();
             drawEarthEnvGrid();
             drawSystemTopology();
             drawStressGrids();
 
-            // NEW DYNAMIC GRAPHS (RIGHT COLUMN 2 / LEFT SIDE)
             if (canvas.width > 1200) {
                 const w = 180, h = 80;
-                const mx = canvas.width - 420; // Shifted left from original graphs
-
-                // 1. Kp Index Dynamics
+                const mx = canvas.width - 420;
                 drawGraphHelper('SOLAR KP-INDEX', kpHistory, mx, 80, w, h, 'rgba(255, 200, 0, 0.8)', 9, '');
-
-                // 2. Bitcoin Volatility
                 const maxBtc = btcHistory.length ? Math.max(...btcHistory) * 1.05 : 100000;
                 drawGraphHelper('BTC/USD VALUE', btcHistory, mx, 190, w, h, 'rgba(0, 255, 100, 0.8)', maxBtc, '$');
-
-                // 3. AQI Monitor
                 drawGraphHelper('EUROPEAN AQI', aqiHistory, mx, 300, w, h, 'rgba(100, 200, 255, 0.8)', 200, '');
-
-                // 4. Solar Wind Velocity
                 drawGraphHelper('SOLAR WIND VEL', solarWindHistory, mx, 410, w, h, 'rgba(255, 100, 255, 0.8)', 1000, 'km/s');
-
-                // 5. LOCAL WIND SPEED
                 drawGraphHelper('LOCAL WIND SPEED', windHistory, mx, 520, w, h, 'rgba(0, 200, 255, 0.8)', 50, 'km/h');
             }
 
-            const avg = blobs.reduce((s, b) => s + (realData[b.param] || 0.5), 0) / blobs.length;
-            blobs.forEach(b => {
-                b.currentSize = lerp(b.currentSize, b.targetSize, 0.04 + chaos * 0.1);
-                b.currentAlpha = lerp(b.currentAlpha, b.targetAlpha, 0.05 + chaos * 0.12);
-                b.currentDist = lerp(b.currentDist, b.radius + (realData[b.param] || 0) * 40, 0.04 + chaos * 0.08);
-                const pulse = Math.sin(t * 0.7 + b.phase) * 0.15;
-                b.angle += (0.006 + avg * 0.02) * (1 + pulse * 0.3);
-                const x = cx + Math.cos(b.angle) * b.currentDist, y = cy + Math.sin(b.angle) * b.currentDist;
-                ctx.fillStyle = b.color + b.currentAlpha.toFixed(2) + ')';
-                ctx.beginPath(); ctx.arc(x, y, b.currentSize * (1 + pulse), 0, 6.28); ctx.fill();
-            });
+
             requestAnimationFrame(loop);
         }
         loop();
