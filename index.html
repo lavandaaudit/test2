@@ -25,114 +25,60 @@ html, body {
   border: none;
   background: #000;
 }
-
-/* ================= DOCENT BUTTON ================= */
-#docent-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 24px;
-  z-index: 9999;
-  font-family: "Courier New", monospace;
-  font-size: 14px;
-  letter-spacing: 2px;
-  color: #9ff;
-  background: rgba(0,0,0,0.65);
-  border: 1px solid #3ff;
-  padding: 10px 14px;
-  cursor: pointer;
-  transition: 0.25s;
-}
-
-#docent-btn:hover {
-  background: #3ff;
-  color: #000;
-}
-
-/* ================= DOCENT MODAL ================= */
-#docent-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.85);
-  z-index: 10000;
-  display: none;
-}
-
-#docent-box {
-  position: absolute;
-  inset: 5%;
-  background: #000;
-  border: 1px solid #3ff;
-}
-
-#docent-box iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-/* ✕ CLOSE */
-#docent-close {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  z-index: 10001;
-  font-family: "Courier New", monospace;
-  font-size: 16px;
-  color: #3ff;
-  cursor: pointer;
-  padding: 4px 8px;
-  border: 1px solid #3ff;
-  background: rgba(0,0,0,0.7);
-}
-
-#docent-close:hover {
-  background: #3ff;
-  color: #000;
-}
 </style>
 </head>
 
 <body>
 
 <!-- STACK -->
-<iframe class="section" src="https://lavandaaudit.github.io/TEST2.ORIGINAL.FILE.25.01.2026/" loading="lazy"></iframe>
-<iframe class="section" src="https://lavandaaudit.github.io/ibonarium.soncemetr.2026/" loading="lazy"></iframe>
-<iframe class="section" src="https://lavandaaudit.github.io/new13/" loading="lazy"></iframe>
-<iframe class="section" src="https://lavandaaudit.github.io/hlam5/" loading="lazy"></iframe>
-<iframe class="section" src="https://lavandaaudit.github.io/parsergeopolitical/" loading="lazy"></iframe>
-<iframe class="section" src="https://lavandaaudit.github.io/economic.radar/" loading="lazy"></iframe>
-<iframe class="section" src="https://lavandaaudit.github.io/new5/" loading="lazy"></iframe>
-<iframe class="section" src="https://lavandaaudit.github.io/new14/" loading="lazy"></iframe>
+<iframe
+  class="section"
+  src="https://lavandaaudit.github.io/TEST2.ORIGINAL.FILE.25.01.2026/"
+  loading="lazy">
+</iframe>
 
-<!-- 🔻 DOCENT ЯК ОСТАННІЙ ЕКРАН -->
+<iframe
+  class="section"
+  src="https://lavandaaudit.github.io/ibonarium.soncemetr.2026/"
+  loading="lazy">
+</iframe>
+
+<iframe
+  class="section"
+  src="https://lavandaaudit.github.io/hlam5/"
+  loading="lazy">
+</iframe>
+
+<iframe
+  class="section"
+  src="https://lavandaaudit.github.io/parsergeopolitical/"
+  loading="lazy">
+</iframe>
+
+<iframe
+  class="section"
+  src="https://lavandaaudit.github.io/economic.radar/"
+  loading="lazy">
+</iframe>
+
+<iframe
+  class="section"
+  src="https://lavandaaudit.github.io/new5/"
+  loading="lazy">
+</iframe>
+
+<iframe
+  class="section"
+  src="https://lavandaaudit.github.io/new14/"
+  loading="lazy">
+</iframe>
+
+<!-- 🔻 DOCENT 1 — ОСТАННІЙ ЕКРАН -->
 <iframe
   class="section"
   src="https://lavandaaudit.github.io/Docent.kafedry.ibonariuma/"
   loading="lazy">
 </iframe>
-
-<!-- ================= DOCENT AS ASSISTANT ================= -->
-<div id="docent-btn">DOCENT</div>
-
-<div id="docent-modal">
-  <div id="docent-box">
-    <div id="docent-close">✕</div>
-    <iframe src="https://lavandaaudit.github.io/Docent.kafedry.ibonariuma/"></iframe>
-  </div>
-</div>
-
-<script>
-const btn = document.getElementById("docent-btn");
-const modal = document.getElementById("docent-modal");
-const close = document.getElementById("docent-close");
-
-btn.onclick = () => modal.style.display = "block";
-close.onclick = () => modal.style.display = "none";
-
-modal.onclick = e => {
-  if (e.target === modal) modal.style.display = "none";
-};
-</script>
 
 </body>
 </html>
